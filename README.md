@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="contents/screeenshot.png" width="800" alt="Deeper screenshot">
+  <img src="docs/screenshot.png" width="800" alt="Deeper screenshot">
 </p>
 
 ---

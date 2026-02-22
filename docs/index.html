@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deeper — Messaging Analytics for Beeper</title>
+  <meta name="description" content="A macOS messaging analytics app for Beeper. Visualize your conversations across every platform.">
+  <meta property="og:title" content="Deeper — Messaging Analytics for Beeper">
+  <meta property="og:description" content="See who you talk to most, discover your active hours, find ghosting patterns, and explore group dynamics.">
+  <meta property="og:image" content="https://raw.githubusercontent.com/f/deeper/main/Deeper/docs/screenshot.png">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0a0a;
+      --bg-elevated: #141414;
+      --bg-card: #1a1a1a;
+      --bg-card-hover: #222;
+      --border: #2a2a2a;
+      --text: #f5f5f5;
+      --text-secondary: #999;
+      --text-muted: #666;
+      --accent: #6C5CE7;
+      --accent-light: #A29BFE;
+      --accent-glow: rgba(108, 92, 231, 0.15);
+      --green: #55EFC4;
+      --blue: #74B9FF;
+      --orange: #FDCB6E;
+      --pink: #FD79A8;
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--accent-light); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: #fff; }
+
+    /* ---- NAV ---- */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(10, 10, 10, 0.8);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 24px;
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; color: var(--text); line-height: 1.1; }
+    .nav-brand-text { display: flex; flex-direction: column; }
+    .nav-brand-sub { font-size: 10px; font-weight: 400; color: var(--text-muted); }
+    .nav-brand img { width: 32px; height: 32px; border-radius: 8px; }
+    .nav-links { display: flex; gap: 28px; }
+    .nav-links a { color: var(--text-secondary); font-size: 14px; font-weight: 500; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: var(--accent); color: #fff; padding: 8px 20px;
+      border-radius: 8px; font-size: 14px; font-weight: 600;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .nav-cta:hover { background: #5a4bd4; color: #fff; transform: translateY(-1px); }
+
+    /* ---- HERO ---- */
+    .hero {
+      padding: 160px 24px 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: -200px; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 800px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      padding: 6px 16px; border-radius: 100px;
+      font-size: 13px; color: var(--text-secondary); margin-bottom: 24px;
+    }
+    .hero-badge img { width: 18px; height: 18px; border-radius: 4px; }
+    .hero h1 {
+      font-size: clamp(40px, 6vw, 72px); font-weight: 800;
+      letter-spacing: -0.03em; line-height: 1.1;
+      margin-bottom: 20px;
+    }
+    .hero h1 .gradient {
+      background: linear-gradient(135deg, var(--accent-light), var(--green));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: 18px; color: var(--text-secondary);
+      max-width: 580px; margin: 0 auto 36px;
+    }
+    .hero-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--accent); color: #fff; padding: 14px 32px;
+      border-radius: 12px; font-size: 16px; font-weight: 600;
+      transition: background 0.2s, transform 0.15s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary:hover { background: #5a4bd4; color: #fff; transform: translateY(-2px); }
+    .btn-secondary {
+      background: var(--bg-card); color: var(--text); padding: 14px 32px;
+      border: 1px solid var(--border); border-radius: 12px;
+      font-size: 16px; font-weight: 600;
+      transition: background 0.2s, transform 0.15s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-secondary:hover { background: var(--bg-card-hover); transform: translateY(-2px); }
+    .hero-install {
+      display: block; margin-top: 40px; padding-top: 8px;
+      font-size: 14px; color: var(--text-muted);
+    }
+    .hero-install code {
+      background: var(--bg-card); border: 1px solid var(--border);
+      padding: 4px 12px; border-radius: 6px; font-family: 'SF Mono', monospace;
+      color: var(--text-secondary);
+    }
+
+    /* ---- COMMUNICATION DIAGRAM ---- */
+    .comm-diagram {
+      max-width: 1000px; margin: 0 auto; padding: 0 24px 80px;
+      display: flex; flex-direction: column; align-items: center; gap: 0;
+    }
+
+    /* Mock Beeper Window */
+    .mock-window {
+      width: 480px; max-width: 100%;
+      background: #1a1a1a; border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .mock-titlebar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 16px; background: #111; border-bottom: 1px solid var(--border);
+    }
+    .mock-dots { display: flex; gap: 6px; }
+    .mock-dots span {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+    .mock-dots span:nth-child(1) { background: #ff5f57; }
+    .mock-dots span:nth-child(2) { background: #febc2e; }
+    .mock-dots span:nth-child(3) { background: #28c840; }
+    .mock-titlebar-text {
+      flex: 1; text-align: center; font-size: 12px; font-weight: 600;
+      color: var(--text-secondary); margin-right: 38px;
+    }
+    .mock-body { padding: 16px; }
+    .mock-sidebar-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px; border-radius: 8px; margin-bottom: 4px;
+    }
+    .mock-sidebar-row.active { background: rgba(108, 92, 231, 0.12); }
+    .mock-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 600; color: #fff; flex-shrink: 0;
+    }
+    .mock-chat-info { flex: 1; min-width: 0; }
+    .mock-chat-name { font-size: 12px; font-weight: 600; color: var(--text); }
+    .mock-chat-msg { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mock-chat-time { font-size: 10px; color: var(--text-muted); flex-shrink: 0; }
+    .mock-badge {
+      width: 16px; height: 16px; border-radius: 50%; background: var(--accent);
+      font-size: 9px; font-weight: 700; color: #fff;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+
+    /* Animated Arrows */
+    .arrows-container {
+      width: 200px; height: 72px; position: relative;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .arrows-container svg { width: 100%; height: 100%; overflow: visible; }
+    @keyframes dash-down {
+      0% { stroke-dashoffset: 14; }
+      100% { stroke-dashoffset: 0; }
+    }
+    @keyframes dash-up {
+      0% { stroke-dashoffset: -14; }
+      100% { stroke-dashoffset: 0; }
+    }
+    .arrow-down {
+      stroke-dasharray: 6 8;
+      animation: dash-down 0.6s linear infinite;
+    }
+    .arrow-up {
+      stroke-dasharray: 6 8;
+      animation: dash-up 0.6s linear infinite;
+    }
+    .arrow-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* Screenshot */
+    .screenshot-img {
+      width: 100%; max-width: 1000px; border-radius: 0; border: none; box-shadow: none;
+    }
+
+    /* ---- SECTION ---- */
+    section { padding: 80px 24px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .section-label {
+      font-size: 13px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--accent-light); margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: clamp(28px, 4vw, 42px); font-weight: 700;
+      letter-spacing: -0.02em; margin-bottom: 16px;
+    }
+    .section-desc {
+      font-size: 17px; color: var(--text-secondary);
+      max-width: 560px; margin-bottom: 48px;
+    }
+
+    /* ---- FEATURES GRID ---- */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px;
+      transition: border-color 0.3s, transform 0.2s;
+    }
+    .feature-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+    .feature-icon {
+      width: 44px; height: 44px; border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; margin-bottom: 16px;
+    }
+    .feature-card h3 { font-size: 17px; font-weight: 600; margin-bottom: 8px; }
+    .feature-card p { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
+
+    /* ---- PLATFORMS ---- */
+    .platforms-wrap {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-top: 32px;
+    }
+    .platform-pill {
+      background: var(--bg-card); border: 1px solid var(--border);
+      padding: 8px 18px; border-radius: 100px;
+      font-size: 14px; font-weight: 500; color: var(--text-secondary);
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .platform-pill:hover { border-color: var(--accent); color: var(--text); }
+
+    /* ---- SETUP STEPS ---- */
+    .steps { display: grid; gap: 20px; counter-reset: step; }
+    .step {
+      display: flex; gap: 20px; align-items: flex-start;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px;
+      counter-increment: step;
+    }
+    .step-number {
+      flex-shrink: 0; width: 36px; height: 36px; border-radius: 10px;
+      background: var(--accent-glow); border: 1px solid rgba(108, 92, 231, 0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 700; color: var(--accent-light);
+    }
+    .step h4 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .step p { font-size: 14px; color: var(--text-secondary); }
+
+    /* ---- PRIVACY ---- */
+    .privacy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .privacy-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px; text-align: center;
+    }
+    .privacy-card .privacy-icon {
+      width: 44px; height: 44px; border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px; background: var(--accent-glow);
+    }
+    .privacy-card .privacy-icon svg { width: 22px; height: 22px; stroke: var(--accent-light); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+    .privacy-card h4 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .privacy-card p { font-size: 13px; color: var(--text-secondary); }
+
+    /* ---- CTA ---- */
+    .cta-section {
+      text-align: center; padding: 100px 24px;
+      position: relative;
+    }
+    .cta-section::before {
+      content: '';
+      position: absolute; bottom: -100px; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-section h2 {
+      font-size: clamp(28px, 4vw, 42px); font-weight: 700;
+      letter-spacing: -0.02em; margin-bottom: 16px;
+    }
+    .cta-section p { font-size: 17px; color: var(--text-secondary); margin-bottom: 32px; }
+
+    /* ---- FOOTER ---- */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 24px;
+      text-align: center;
+      color: var(--text-muted); font-size: 13px;
+    }
+    footer a { color: var(--text-secondary); }
+    .footer-links { display: flex; gap: 24px; justify-content: center; margin-bottom: 12px; }
+
+    /* ---- RESPONSIVE ---- */
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .features-grid { grid-template-columns: 1fr; }
+      .hero-buttons { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <a href="#" class="nav-brand">
+        <img src="./icon.svg" alt="Deeper">
+        <span class="nav-brand-text">Deeper<span class="nav-brand-sub">for Beeper</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#platforms">Platforms</a>
+        <a href="#setup">Setup</a>
+        <a href="#privacy">Privacy</a>
+        <a href="https://github.com/f/deeper">GitHub</a>
+      </div>
+      <a href="https://github.com/f/deeper/releases/latest" class="nav-cta">Download</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge">
+      <svg width="80" height="17" viewBox="0 0 152 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M143.94 6.42578C147.528 6.42578 150.423 9.32052 150.423 12.9088C150.423 16.0749 148.191 18.6983 145.206 19.2712L151.026 27.5634H145.9L140.02 18.7887V27.5332H135.647V6.42578H143.94ZM139.869 12.9088C139.869 14.5672 141.226 15.9241 142.884 15.9241C144.543 15.9241 145.9 14.5672 145.9 12.9088C145.9 11.2503 144.543 9.89344 142.884 9.89344C141.226 9.89344 139.869 11.2503 139.869 12.9088Z" fill="#A29BFE"/><path d="M131.875 6.42578V10.4965H122.558V14.718H131.272V18.7887H122.558V23.4625H131.875V27.5332H118.186V6.42578H131.875Z" fill="#A29BFE"/><path d="M108.779 6.42578C112.397 6.42578 115.322 9.35067 115.322 12.9691C115.322 16.6177 112.397 19.5426 108.779 19.5426H104.919V27.5332H100.547V6.42578H108.779ZM104.768 12.9088C104.768 14.5672 106.125 15.9241 107.784 15.9241C109.442 15.9241 110.799 14.5672 110.799 12.9088C110.799 11.2503 109.442 9.89344 107.784 9.89344C106.125 9.89344 104.768 11.2503 104.768 12.9088Z" fill="#A29BFE"/><path d="M96.5393 6.42578V10.4965H87.2219V14.718H95.9362V18.7887H87.2219V23.4625H96.5393V27.5332H82.8496V6.42578H96.5393Z" fill="#A29BFE"/><path d="M78.7825 6.42578V10.4965H69.465V14.718H78.1794V18.7887H69.465V23.4625H78.7825V27.5332H65.0928V6.42578H78.7825Z" fill="#A29BFE"/><path d="M55.2822 27.5332H46.6885V6.42578H54.9807C58.388 6.42578 61.1622 9.1999 61.1622 12.6073C61.1622 14.326 60.3179 15.8638 58.961 16.8589C60.4988 17.8841 61.4637 19.5124 61.4637 21.3518C61.4637 24.7591 58.6896 27.5332 55.2822 27.5332ZM50.91 21.201C50.91 22.8594 52.2066 24.156 53.865 24.156C55.4933 24.156 56.7899 22.8594 56.7899 21.201C56.7899 19.5727 55.4933 18.2761 53.865 18.2761C52.2066 18.2761 50.91 19.5727 50.91 21.201ZM50.91 12.6977C50.91 14.2958 52.1764 15.5623 53.7746 15.5623C55.3727 15.5623 56.6391 14.2958 56.6391 12.6977C56.6391 11.0996 55.3727 9.83313 53.7746 9.83313C52.1764 9.83313 50.91 11.0996 50.91 12.6977Z" fill="#A29BFE"/><path fill-rule="evenodd" clip-rule="evenodd" d="M0 9C0 4.0625 3.98437 0 9.02013 0H16.4799C21.4615 0 25.5 4.01832 25.5 9C25.4941 11.683 24.3223 13.9941 22.6914 15.5312L20.9824 17.2344C23.4712 18.6864 25.4794 20.9645 25.4794 24.0537C25.4794 28.6795 21.7294 32 17.1035 32H4.5V16.7969C1.83594 15.2422 0 12.3346 0 9ZM9.02013 2.5C5.375 2.5 2.5 5.42969 2.5 9C2.5 12.5703 5.375 15.5 9.02013 15.5H12.1258L10.3984 24.2344L20.9355 13.752C22.1426 12.627 23 10.9252 23 9C23 5.375 20.0312 2.46094 16.4799 2.5H9.02013Z" fill="#A29BFE"/></svg>
+      Desktop
+    </div>
+    <h1>Analytics for<br><span class="gradient">every conversation</span></h1>
+    <p>See who you talk to most, discover your active hours, find ghosting patterns, and explore group dynamics — across every platform in Beeper.</p>
+    <div class="hero-buttons">
+      <a href="https://github.com/f/deeper/releases/latest" class="btn-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download for macOS
+      </a>
+      <a href="https://github.com/f/deeper" class="btn-secondary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+    <p class="hero-install">or install with Homebrew: <code>brew install f/tap/deeper</code></p>
+  </section>
+
+  <!-- COMMUNICATION DIAGRAM -->
+  <div class="comm-diagram">
+
+    <!-- Mock Beeper Desktop Window -->
+    <div class="mock-window">
+      <div class="mock-titlebar">
+        <div class="mock-dots"><span></span><span></span><span></span></div>
+        <div class="mock-titlebar-text">Beeper Desktop</div>
+      </div>
+      <div class="mock-body">
+        <div class="mock-sidebar-row active">
+          <div class="mock-avatar" style="background:#25D366;">S</div>
+          <div class="mock-chat-info">
+            <div class="mock-chat-name">Sarah Chen</div>
+            <div class="mock-chat-msg">haha that reel was amazing</div>
+          </div>
+          <div class="mock-chat-time">10:42a</div>
+          <div class="mock-badge">3</div>
+        </div>
+        <div class="mock-sidebar-row">
+          <div class="mock-avatar" style="background:#0088cc;">A</div>
+          <div class="mock-chat-info">
+            <div class="mock-chat-name">Alex Rivera</div>
+            <div class="mock-chat-msg">see you at the meetup!</div>
+          </div>
+          <div class="mock-chat-time">9:15a</div>
+        </div>
+        <div class="mock-sidebar-row">
+          <div class="mock-avatar" style="background:#5865F2;">G</div>
+          <div class="mock-chat-info">
+            <div class="mock-chat-name">Gaming Squad</div>
+            <div class="mock-chat-msg">marcusj: anyone up for ranked?</div>
+          </div>
+          <div class="mock-chat-time">8:30a</div>
+          <div class="mock-badge">12</div>
+        </div>
+        <div class="mock-sidebar-row">
+          <div class="mock-avatar" style="background:#E1306C;">E</div>
+          <div class="mock-chat-info">
+            <div class="mock-chat-name">Emma Kowalski</div>
+            <div class="mock-chat-msg">sent a reel</div>
+          </div>
+          <div class="mock-chat-time">Yesterday</div>
+        </div>
+        <div class="mock-sidebar-row">
+          <div class="mock-avatar" style="background:#E17055;">F</div>
+          <div class="mock-chat-info">
+            <div class="mock-chat-name">Family Chat</div>
+            <div class="mock-chat-msg">Mom: dinner at 7?</div>
+          </div>
+          <div class="mock-chat-time">Yesterday</div>
+          <div class="mock-badge">5</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Animated Arrows -->
+    <div class="arrows-container">
+      <svg viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Left arrow (data flowing down) -->
+        <line x1="70" y1="8" x2="70" y2="60" class="arrow-down" stroke="#A29BFE" stroke-width="2"/>
+        <polygon points="64,56 70,68 76,56" fill="#A29BFE"/>
+        <text x="70" y="78" fill="#666" class="arrow-label" text-anchor="middle">chats</text>
+
+        <!-- Right arrow (data flowing up) -->
+        <line x1="130" y1="60" x2="130" y2="8" class="arrow-up" stroke="#55EFC4" stroke-width="2"/>
+        <polygon points="124,12 130,0 136,12" fill="#55EFC4"/>
+        <text x="130" y="78" fill="#666" class="arrow-label" text-anchor="middle">analytics</text>
+
+      </svg>
+    </div>
+
+    <!-- Deeper Screenshot -->
+    <img class="screenshot-img" src="./screenshot.png" alt="Deeper app screenshot">
+
+  </div>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="container">
+      <p class="section-label">Features</p>
+      <h2 class="section-title">Everything about your chats, visualized</h2>
+      <p class="section-desc">Deeper connects to your local Beeper Desktop instance and turns your messaging data into beautiful, interactive analytics.</p>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(108, 92, 231, 0.15);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A29BFE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+          <h3>Dashboard</h3>
+          <p>At-a-glance stats, connection categories, interactive hourly activity charts per platform, and a full platform ranking.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(116, 185, 255, 0.15);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#74B9FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          <h3>People</h3>
+          <p>Cross-platform contact merging, sent/received breakdowns, ghosting detection, connection type badges, and per-person detail views.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(85, 239, 196, 0.15);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#55EFC4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+          <h3>Groups</h3>
+          <p>Most active groups ranked by message volume, largest groups by members, per-platform breakdowns with unread and muted indicators.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(253, 203, 110, 0.15);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FDCB6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+          <h3>Platforms</h3>
+          <p>Chat distribution donut chart, groups vs DMs breakdown per platform, and detailed platform cards with top contacts.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(253, 121, 168, 0.15);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FD79A8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+          <h3>Reels Leaderboard</h3>
+          <p>See who you exchange the most Instagram Reels with. Sent vs received charts and summary stats.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(162, 155, 254, 0.15);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A29BFE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L9.09 8.26 2 9.27l5 4.87L5.82 21 12 17.77 18.18 21 17 14.14l5-4.87-7.09-1.01L12 2z"/></svg></div>
+          <h3>Liquid Glass UI</h3>
+          <p>Built with SwiftUI and native macOS 26 Tahoe design language, featuring .glassEffect() throughout.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLATFORMS -->
+  <section id="platforms" style="background: var(--bg-elevated);">
+    <div class="container">
+      <p class="section-label">Supported Platforms</p>
+      <h2 class="section-title">All your chats, one dashboard</h2>
+      <p class="section-desc">Deeper automatically detects every platform bridged through Beeper and shows unified analytics.</p>
+      <div class="platforms-wrap">
+        <span class="platform-pill">iMessage</span>
+        <span class="platform-pill">WhatsApp</span>
+        <span class="platform-pill">Instagram</span>
+        <span class="platform-pill">Telegram</span>
+        <span class="platform-pill">Signal</span>
+        <span class="platform-pill">X (Twitter)</span>
+        <span class="platform-pill">Facebook Messenger</span>
+        <span class="platform-pill">Discord</span>
+        <span class="platform-pill">Slack</span>
+        <span class="platform-pill">LinkedIn</span>
+        <span class="platform-pill">Google Messages</span>
+        <span class="platform-pill">Google Chat</span>
+        <span class="platform-pill">SMS</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETUP -->
+  <section id="setup">
+    <div class="container">
+      <p class="section-label">Get Started</p>
+      <h2 class="section-title">Up and running in minutes</h2>
+      <p class="section-desc">Connect Deeper to your Beeper Desktop in a few simple steps.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div>
+            <h4>Open Beeper Desktop</h4>
+            <p>Make sure Beeper Desktop is running on your Mac. Go to <strong>Settings</strong>.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div>
+            <h4>Enable the Developer API</h4>
+            <p>Navigate to the <strong>Developers</strong> tab in the sidebar. Toggle <strong>Beeper Desktop API</strong> to On. Enable <strong>Start on launch</strong>.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div>
+            <h4>Generate an API Token</h4>
+            <p>Scroll to <strong>Approved Connections</strong> and click the <strong>+</strong> button on the right to create a new token.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">4</div>
+          <div>
+            <h4>Launch Deeper</h4>
+            <p>Open Deeper and click <strong>Connect Beeper Desktop API</strong>. Your token is stored securely in macOS Keychain.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">5</div>
+          <div>
+            <h4>Explore your data</h4>
+            <p>Deeper fetches all your chats, merges contacts across platforms, analyzes messages, and presents interactive dashboards.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRIVACY -->
+  <section id="privacy" style="background: var(--bg-elevated);">
+    <div class="container">
+      <p class="section-label">Privacy</p>
+      <h2 class="section-title">Your data never leaves your machine</h2>
+      <p class="section-desc">Deeper runs entirely locally. No servers, no telemetry, no tracking.</p>
+
+      <div class="privacy-grid">
+        <div class="privacy-card">
+          <div class="privacy-icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+          <h4>100% Local</h4>
+          <p>Connects only to localhost:23373 — your local Beeper Desktop instance.</p>
+        </div>
+        <div class="privacy-card">
+          <div class="privacy-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></div>
+          <h4>No Telemetry</h4>
+          <p>No analytics, no tracking, no external network requests whatsoever.</p>
+        </div>
+        <div class="privacy-card">
+          <div class="privacy-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          <h4>Keychain Storage</h4>
+          <p>Your Beeper auth token is stored in macOS Keychain, never in plaintext.</p>
+        </div>
+        <div class="privacy-card">
+          <div class="privacy-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+          <h4>Open Source</h4>
+          <p>MIT licensed. Audit every line of code yourself on GitHub.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <h2>Ready to go deeper?</h2>
+    <p>Download Deeper and start exploring your messaging analytics today.</p>
+    <div class="hero-buttons">
+      <a href="https://github.com/f/deeper/releases/latest" class="btn-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download for macOS
+      </a>
+      <a href="https://github.com/f/deeper" class="btn-secondary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        Star on GitHub
+      </a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-links">
+      <a href="https://github.com/f/deeper">GitHub</a>
+      <a href="https://github.com/f/deeper/releases">Releases</a>
+      <a href="https://beeper.com">Beeper</a>
+      <a href="https://github.com/f/deeper/blob/main/Deeper/LICENSE">MIT License</a>
+    </div>
+    <p>Made with ♥ for the Beeper community. Deeper is not affiliated with or endorsed by Beeper.</p>
+  </footer>
+
+</body>
+</html>
