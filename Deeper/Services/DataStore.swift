@@ -53,8 +53,102 @@ final class DataStore {
 
     let api: BeeperAPIClient?
 
+    var messageLimit: Int {
+        let stored = UserDefaults.standard.integer(forKey: "messageLimit")
+        if stored == 0 { return Int.max }
+        return stored > 0 ? stored : 200
+    }
+
     init(api: BeeperAPIClient) {
         self.api = api
+        loadCache()
+    }
+
+    // MARK: - Cache
+
+    private static var cacheURL: URL {
+        let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+        return dir.appendingPathComponent("deeper_data_cache.json")
+    }
+
+    struct CachedData: Codable {
+        let accounts: [BeeperAccount]
+        let allChats: [BeeperChat]
+        let chatBreakdowns: [String: PersonMerger.ChatMessageBreakdown]
+        let mergedPeople: [MergedPerson]
+        let twoWayPeople: [MergedPerson]
+        let theyGhostPeople: [MergedPerson]
+        let iGhostPeople: [MergedPerson]
+        let platformStats: [PlatformStats]
+        let hourlyActivity: [HourlyActivityPoint]
+        let groupStats: [PlatformGroupStats]
+        let mostActiveGroups: [GroupInfo]
+        let reelEntries: [ReelShareEntry]
+        let totalReelsSent: Int
+        let totalReelsReceived: Int
+        let hasInstagram: Bool
+        let totalChats: Int
+        let totalUnread: Int
+        let messagesSentToday: Int
+        let messagesReceivedToday: Int
+        let lastSyncDate: Date?
+    }
+
+    func saveCache() {
+        let data = CachedData(
+            accounts: accounts,
+            allChats: allChats,
+            chatBreakdowns: chatBreakdowns,
+            mergedPeople: mergedPeople,
+            twoWayPeople: twoWayPeople,
+            theyGhostPeople: theyGhostPeople,
+            iGhostPeople: iGhostPeople,
+            platformStats: platformStats,
+            hourlyActivity: hourlyActivity,
+            groupStats: groupStats,
+            mostActiveGroups: mostActiveGroups,
+            reelEntries: reelEntries,
+            totalReelsSent: totalReelsSent,
+            totalReelsReceived: totalReelsReceived,
+            hasInstagram: hasInstagram,
+            totalChats: totalChats,
+            totalUnread: totalUnread,
+            messagesSentToday: messagesSentToday,
+            messagesReceivedToday: messagesReceivedToday,
+            lastSyncDate: lastSyncDate
+        )
+        do {
+            let encoded = try JSONEncoder().encode(data)
+            try encoded.write(to: Self.cacheURL)
+        } catch {}
+    }
+
+    func loadCache() {
+        guard FileManager.default.fileExists(atPath: Self.cacheURL.path) else { return }
+        do {
+            let data = try Data(contentsOf: Self.cacheURL)
+            let cached = try JSONDecoder().decode(CachedData.self, from: data)
+            accounts = cached.accounts
+            allChats = cached.allChats
+            chatBreakdowns = cached.chatBreakdowns
+            mergedPeople = cached.mergedPeople
+            twoWayPeople = cached.twoWayPeople
+            theyGhostPeople = cached.theyGhostPeople
+            iGhostPeople = cached.iGhostPeople
+            platformStats = cached.platformStats
+            hourlyActivity = cached.hourlyActivity
+            groupStats = cached.groupStats
+            mostActiveGroups = cached.mostActiveGroups
+            reelEntries = cached.reelEntries
+            totalReelsSent = cached.totalReelsSent
+            totalReelsReceived = cached.totalReelsReceived
+            hasInstagram = cached.hasInstagram
+            totalChats = cached.totalChats
+            totalUnread = cached.totalUnread
+            messagesSentToday = cached.messagesSentToday
+            messagesReceivedToday = cached.messagesReceivedToday
+            lastSyncDate = cached.lastSyncDate
+        } catch {}
     }
 
     // MARK: - Full sync
@@ -106,15 +200,24 @@ final class DataStore {
                     isPinned: chat.isPinned ?? false
                 )
                 do {
-                    let response = try await api.listMessages(chatID: chat.id)
                     var sent = 0
                     var received = 0
-                    for msg in response.items {
-                        if msg.isSender == true {
-                            sent += 1
-                        } else {
-                            received += 1
+                    var cursor: String? = nil
+                    var total = 0
+                    let limit = messageLimit
+                    while total < limit {
+                        let response = try await api.listMessages(chatID: chat.id, cursor: cursor, direction: cursor != nil ? "before" : nil)
+                        for msg in response.items {
+                            if msg.isSender == true {
+                                sent += 1
+                            } else {
+                                received += 1
+                            }
+                            total += 1
+                            if total >= limit { break }
                         }
+                        guard total < limit, response.hasMore, let lastMsg = response.items.last else { break }
+                        cursor = lastMsg.sortKey
                     }
                     info.messagesSent = sent
                     info.messagesReceived = received
@@ -152,16 +255,25 @@ final class DataStore {
                 loadingProgress = "Analyzing conversations (\(index + 1)/\(dmChats.count))..."
                 let platform = Platform.from(accountID: chat.accountID)
                 do {
-                    let response = try await api.listMessages(chatID: chat.id)
                     var bd = PersonMerger.ChatMessageBreakdown()
-                    for msg in response.items {
-                        if msg.isSender == true {
-                            bd.sent += 1
-                        } else {
-                            bd.received += 1
+                    var cursor: String? = nil
+                    var total = 0
+                    let limit = messageLimit
+                    while total < limit {
+                        let response = try await api.listMessages(chatID: chat.id, cursor: cursor, direction: cursor != nil ? "before" : nil)
+                        for msg in response.items {
+                            if msg.isSender == true {
+                                bd.sent += 1
+                            } else {
+                                bd.received += 1
+                            }
+                            let hour = calendar.component(.hour, from: msg.timestamp)
+                            hourlyMap[platform, default: [:]][hour, default: 0] += 1
+                            total += 1
+                            if total >= limit { break }
                         }
-                        let hour = calendar.component(.hour, from: msg.timestamp)
-                        hourlyMap[platform, default: [:]][hour, default: 0] += 1
+                        guard total < limit, response.hasMore, let lastMsg = response.items.last else { break }
+                        cursor = lastMsg.sortKey
                     }
                     breakdowns[chat.id] = bd
                 } catch {
@@ -264,6 +376,7 @@ final class DataStore {
 
         loadingProgress = nil
         isLoading = false
+        saveCache()
 
         // Fetch time range stats after main sync completes
         await fetchTodayStats()

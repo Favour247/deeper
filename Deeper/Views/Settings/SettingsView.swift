@@ -27,6 +27,8 @@ struct SettingsView: View {
     @State private var error: String?
     @State private var hasExistingToken = false
     @State private var showAdvancedWindow = false
+    @AppStorage("messageLimit") private var messageLimit: Int = 200
+    @State private var showAllWarning = false
 
     var body: some View {
         Form {
@@ -137,6 +139,47 @@ struct SettingsView: View {
                 }
             } header: {
                 Text("Connection")
+            }
+
+            // MARK: - Data Settings
+            Section {
+                Picker("Messages per chat", selection: Binding(
+                    get: { messageLimit },
+                    set: { newValue in
+                        if newValue == 0 {
+                            showAllWarning = true
+                        } else {
+                            messageLimit = newValue
+                        }
+                    }
+                )) {
+                    Text("Last 50").tag(50)
+                    Text("Last 100").tag(100)
+                    Text("Last 200").tag(200)
+                    Text("Last 1000").tag(1000)
+                    Text("All").tag(0)
+                }
+                .pickerStyle(.segmented)
+
+                if messageLimit == 0 {
+                    Label("All messages will be fetched. Sync may take a very long time.", systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                } else {
+                    Text("How many messages to analyze per conversation. Lower values sync faster.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Data")
+            }
+            .alert("Fetch All Messages?", isPresented: $showAllWarning) {
+                Button("Cancel", role: .cancel) {}
+                Button("Continue") {
+                    messageLimit = 0
+                }
+            } message: {
+                Text("This will fetch every message from every conversation. Sync may take a very long time depending on your chat history.")
             }
 
             // MARK: - About Section
@@ -331,6 +374,15 @@ struct SettingsView: View {
         baseURL = "http://localhost:23373"
         connectionInfo = nil
         hasExistingToken = false
+
+        // Clear cached data
+        let cacheURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("deeper_data_cache.json")
+        try? FileManager.default.removeItem(at: cacheURL)
+
+        // Clear settings
+        UserDefaults.standard.removeObject(forKey: "messageLimit")
+
         NotificationCenter.default.post(name: .deeperDidLogout, object: nil)
         if closeOnDisconnect {
             NSApplication.shared.keyWindow?.performClose(nil)

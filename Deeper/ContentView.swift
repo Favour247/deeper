@@ -5,6 +5,7 @@
 //  Created by Fatih Kadir Akın on 22.02.2026.
 //
 
+import AppKit
 import SwiftUI
 
 enum SidebarItem: String, CaseIterable, Identifiable {
@@ -36,6 +37,7 @@ struct ContentView: View {
     @State var api: BeeperAPIClient?
     @State var store: DataStore?
     @State private var hasInitialized = false
+    @State private var showBeeperNotRunning = false
 
     var body: some View {
         Group {
@@ -48,9 +50,18 @@ struct ContentView: View {
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) {
                         if store.isLoading {
-                            ProgressView()
-                                .controlSize(.small)
-                                .frame(width: 24, height: 24)
+                            HStack(spacing: 8) {
+                                ProgressView()
+                                    .controlSize(.small)
+                                if let progress = store.loadingProgress {
+                                    Text(progress)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
                         } else {
                             Button {
                                 Task { await store.sync() }
@@ -79,12 +90,66 @@ struct ContentView: View {
             self.api = client
             let newStore = DataStore(api: client)
             self.store = newStore
-            Task { await newStore.sync() }
+            Task {
+                do {
+                    _ = try await client.getInfo()
+                    await newStore.sync()
+                } catch {
+                    if !newStore.isCached {
+                        showBeeperNotRunning = true
+                    }
+                }
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .deeperDidLogout)) { _ in
             self.api = nil
             self.store = nil
             self.hasInitialized = false
+        }
+        .sheet(isPresented: $showBeeperNotRunning) {
+            VStack(spacing: 20) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.orange)
+
+                Text("Beeper Desktop is not running")
+                    .font(.title2)
+                    .fontWeight(.bold)
+
+                Text("Please open Beeper Desktop and make sure the Desktop API is enabled in Settings → Developers.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 320)
+
+                HStack(spacing: 12) {
+                    Button("Open Beeper") {
+                        if let beeperURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.beeper.beeper-desktop") {
+                            NSWorkspace.shared.openApplication(at: beeperURL, configuration: .init())
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Button("Retry") {
+                        showBeeperNotRunning = false
+                        guard let api else { return }
+                        Task {
+                            do {
+                                _ = try await api.getInfo()
+                                if let store, !store.isCached {
+                                    await store.sync()
+                                }
+                            } catch {
+                                showBeeperNotRunning = true
+                            }
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+            .padding(40)
+            .frame(width: 420)
+            .interactiveDismissDisabled(false)
         }
     }
 

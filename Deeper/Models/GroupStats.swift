@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct GroupInfo: Identifiable {
+struct GroupInfo: Identifiable, Codable {
     let id: String
     let title: String
     let platform: Platform
@@ -21,7 +21,7 @@ struct GroupInfo: Identifiable {
     var messagesReceived: Int = 0
 }
 
-struct PlatformGroupStats: Identifiable {
+struct PlatformGroupStats: Identifiable, Codable {
     let platform: Platform
     var groups: [GroupInfo] = []
     var totalGroups: Int { groups.count }

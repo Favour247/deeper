@@ -18,10 +18,10 @@ struct TimeRangeView: View {
 
     var body: some View {
         ScrollView {
-            if isFetching && stats == nil {
+            if stats == nil && (isFetching || store.isLoading) {
                 VStack(spacing: 8) {
                     ProgressView()
-                    Text("Loading…")
+                    Text(store.isLoading ? (store.loadingProgress ?? "Syncing…") : "Loading…")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

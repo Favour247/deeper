@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct HourlyActivityPoint: Identifiable {
+struct HourlyActivityPoint: Identifiable, Codable {
     let hour: Int
     let platform: Platform
     var count: Int

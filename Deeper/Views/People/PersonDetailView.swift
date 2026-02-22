@@ -137,6 +137,7 @@ struct PersonDetailView: View {
                                     .font(.caption)
                                     .foregroundStyle(.tertiary)
                             }
+
                         }
                         .padding(.vertical, 6)
                         .padding(.horizontal, 12)

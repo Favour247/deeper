@@ -27,105 +27,106 @@ struct GroupsView: View {
                         description: Text("No group chats found")
                     )
                 } else {
-                    // MARK: - Summary Cards
-                    let totalGroups = store.groupStats.reduce(0) { $0 + $1.totalGroups }
-                    let totalMembers = store.groupStats.reduce(0) { $0 + $1.totalMembers }
-                    let totalUnread = store.groupStats.reduce(0) { $0 + $1.totalUnread }
-                    let totalMuted = store.groupStats.reduce(0) { $0 + $1.mutedCount }
+                    if searchText.isEmpty {
+                        // MARK: - Summary Cards
+                        let totalGroups = store.groupStats.reduce(0) { $0 + $1.totalGroups }
+                        let totalMembers = store.groupStats.reduce(0) { $0 + $1.totalMembers }
+                        let totalUnread = store.groupStats.reduce(0) { $0 + $1.totalUnread }
+                        let totalMuted = store.groupStats.reduce(0) { $0 + $1.mutedCount }
 
-                    LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: 16),
-                        GridItem(.flexible(), spacing: 16),
-                        GridItem(.flexible(), spacing: 16),
-                        GridItem(.flexible(), spacing: 16)
-                    ], spacing: 16) {
-                        StatCard(title: "Groups", value: "\(totalGroups)", icon: "person.3.fill", color: .blue)
-                        StatCard(title: "Members", value: "\(totalMembers)", icon: "person.2.fill", color: .green)
-                        StatCard(title: "Unread", value: "\(totalUnread)", icon: "envelope.badge.fill", color: .orange)
-                        StatCard(title: "Muted", value: "\(totalMuted)", icon: "bell.slash.fill", color: .gray)
-                    }
+                        LazyVGrid(columns: [
+                            GridItem(.flexible(), spacing: 16),
+                            GridItem(.flexible(), spacing: 16),
+                            GridItem(.flexible(), spacing: 16),
+                            GridItem(.flexible(), spacing: 16)
+                        ], spacing: 16) {
+                            StatCard(title: "Groups", value: "\(totalGroups)", icon: "person.3.fill", color: .blue)
+                            StatCard(title: "Members", value: "\(totalMembers)", icon: "person.2.fill", color: .green)
+                            StatCard(title: "Unread", value: "\(totalUnread)", icon: "envelope.badge.fill", color: .orange)
+                            StatCard(title: "Muted", value: "\(totalMuted)", icon: "bell.slash.fill", color: .gray)
+                        }
 
-                    // MARK: - Groups per Platform Chart
-                    HStack(alignment: .top, spacing: 16) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Groups by Platform")
-                                .font(.headline)
+                        // MARK: - Groups per Platform Chart
+                        HStack(alignment: .top, spacing: 16) {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Groups by Platform")
+                                    .font(.headline)
 
-                            Chart(store.groupStats) { stat in
-                                SectorMark(
-                                    angle: .value("Groups", stat.totalGroups),
-                                    innerRadius: .ratio(0.6),
-                                    angularInset: 2
-                                )
-                                .foregroundStyle(stat.platform.color)
-                                .cornerRadius(4)
-                            }
-                            .frame(height: 200)
+                                Chart(store.groupStats) { stat in
+                                    SectorMark(
+                                        angle: .value("Groups", stat.totalGroups),
+                                        innerRadius: .ratio(0.6),
+                                        angularInset: 2
+                                    )
+                                    .foregroundStyle(stat.platform.color)
+                                    .cornerRadius(4)
+                                }
+                                .frame(height: 200)
 
-                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                                ForEach(store.groupStats) { stat in
-                                    HStack(spacing: 6) {
-                                        Circle()
-                                            .fill(stat.platform.color)
-                                            .frame(width: 8, height: 8)
-                                        Text(stat.platform.displayName)
-                                            .font(.caption)
-                                        Spacer()
-                                        Text("\(stat.totalGroups)")
-                                            .font(.caption)
-                                            .fontWeight(.medium)
-                                            .foregroundStyle(.secondary)
+                                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                                    ForEach(store.groupStats) { stat in
+                                        HStack(spacing: 6) {
+                                            Circle()
+                                                .fill(stat.platform.color)
+                                                .frame(width: 8, height: 8)
+                                            Text(stat.platform.displayName)
+                                                .font(.caption)
+                                            Spacer()
+                                            Text("\(stat.totalGroups)")
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                                .foregroundStyle(.secondary)
+                                        }
                                     }
                                 }
                             }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-                        .glassEffect(.regular, in: .rect(cornerRadius: 16))
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                            .glassEffect(.regular, in: .rect(cornerRadius: 16))
 
-                        // MARK: - Largest Groups
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Largest Groups")
-                                .font(.headline)
+                            // MARK: - Largest Groups
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Largest Groups")
+                                    .font(.headline)
 
-                            let allGroups = store.groupStats.flatMap(\.groups)
-                                .sorted { $0.memberCount > $1.memberCount }
-                            let topGroups = Array(allGroups.prefix(10))
+                                let allGroups = store.groupStats.flatMap(\.groups)
+                                    .sorted { $0.memberCount > $1.memberCount }
+                                let topGroups = Array(allGroups.prefix(10))
 
-                            Chart(topGroups) { group in
-                                BarMark(
-                                    x: .value("Members", group.memberCount),
-                                    y: .value("Group", group.title)
-                                )
-                                .foregroundStyle(group.platform.color)
-                                .cornerRadius(4)
-                                .annotation(position: .trailing, alignment: .leading) {
-                                    Text("\(group.memberCount)")
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
+                                Chart(topGroups) { group in
+                                    BarMark(
+                                        x: .value("Members", group.memberCount),
+                                        y: .value("Group", group.title)
+                                    )
+                                    .foregroundStyle(group.platform.color)
+                                    .cornerRadius(4)
+                                    .annotation(position: .trailing, alignment: .leading) {
+                                        Text("\(group.memberCount)")
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
-                            }
-                            .chartYAxis {
-                                AxisMarks { _ in
-                                    AxisValueLabel()
+                                .chartYAxis {
+                                    AxisMarks { _ in
+                                        AxisValueLabel()
+                                    }
                                 }
+                                .frame(height: max(CGFloat(topGroups.count * 28), 100))
                             }
-                            .frame(height: max(CGFloat(topGroups.count * 28), 100))
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                            .glassEffect(.regular, in: .rect(cornerRadius: 16))
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-                        .glassEffect(.regular, in: .rect(cornerRadius: 16))
-                    }
 
-                    // MARK: - Most Active Groups
-                    if !store.mostActiveGroups.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Most Active Groups")
-                                .font(.headline)
+                        // MARK: - Most Active Groups
+                        if !store.mostActiveGroups.isEmpty {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Most Active Groups")
+                                    .font(.headline)
 
-                            let topActive = Array(store.mostActiveGroups.filter { $0.messageCount > 0 }.prefix(15))
+                                let topActive = Array(store.mostActiveGroups.filter { $0.messageCount > 0 }.prefix(15))
 
                             ForEach(Array(topActive.enumerated()), id: \.element.id) { index, group in
                                 HStack(spacing: 12) {
@@ -211,6 +212,7 @@ struct GroupsView: View {
                         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
                         .glassEffect(.regular, in: .rect(cornerRadius: 16))
                     }
+                    } // end if searchText.isEmpty
 
                     // MARK: - Per-Platform Group Lists
                     ForEach(store.groupStats) { platformStat in

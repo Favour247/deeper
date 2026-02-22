@@ -8,8 +8,18 @@
 import Foundation
 
 enum PersonMerger {
+    /// Normalize a name: strip diacritics (İ→I, é→e), lowercase, collapse whitespace
+    private static func normalizeName(_ name: String) -> String {
+        name.folding(options: [.diacriticInsensitive, .widthInsensitive, .caseInsensitive], locale: .current)
+            .lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+
     static func merge(chats: [BeeperChat]) -> [MergedPerson] {
-        // Maps person key -> MergedPerson
+        // Maps normalized person key -> MergedPerson
         var personMap: [String: MergedPerson] = [:]
         // Maps (platform, userID) -> person key, so same-platform users stay separate
         var platformUserToKey: [String: String] = [:]
@@ -21,23 +31,27 @@ enum PersonMerger {
                 guard participant.isSelf != true else { continue }
 
                 let name = participant.displayName
-                let normalizedName = name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                let normalizedName = normalizeName(name)
                 let platformUserID = "\(platform.rawValue)_\(participant.id)"
 
                 // Determine the person key for this participant
                 let key: String
                 if let existingKey = platformUserToKey[platformUserID] {
-                    // Already seen this exact platform+userID — use same person
+                    // Already seen this exact platform+userID — reuse same person
                     key = existingKey
+                } else if personMap[normalizedName] == nil {
+                    // First time seeing this name — claim the plain key
+                    key = normalizedName
+                    platformUserToKey[platformUserID] = key
                 } else if let existingPerson = personMap[normalizedName],
                           !existingPerson.presences.contains(where: {
                               $0.platform == platform && $0.userID != participant.id
                           }) {
-                    // Name matches and no conflicting userID on same platform — merge cross-platform
+                    // Same name exists, no conflicting userID on same platform — merge
                     key = normalizedName
                     platformUserToKey[platformUserID] = key
                 } else {
-                    // Name collision on same platform (different user) — disambiguate
+                    // Same name AND same platform with different userID — disambiguate
                     let disambiguated = "\(normalizedName)_\(participant.id)"
                     key = disambiguated
                     platformUserToKey[platformUserID] = key
@@ -86,7 +100,7 @@ enum PersonMerger {
             .sorted { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }
     }
 
-    struct ChatMessageBreakdown {
+    struct ChatMessageBreakdown: Codable {
         var sent: Int = 0
         var received: Int = 0
         var total: Int { sent + received }

@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-enum Platform: String, CaseIterable, Identifiable, Sendable, Hashable {
+enum Platform: String, CaseIterable, Identifiable, Sendable, Hashable, Codable {
     case whatsapp
     case telegram
     case instagram

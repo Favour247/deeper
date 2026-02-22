@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct PlatformPresence: Identifiable, Sendable {
+struct PlatformPresence: Identifiable, Sendable, Codable {
     let platform: Platform
     let accountID: String
     let userID: String
@@ -20,7 +20,7 @@ struct PlatformPresence: Identifiable, Sendable {
     var id: String { "\(accountID)_\(userID)" }
 }
 
-struct MergedPerson: Identifiable, Hashable, Sendable {
+struct MergedPerson: Identifiable, Hashable, Sendable, Codable {
     static func == (lhs: MergedPerson, rhs: MergedPerson) -> Bool {
         lhs.id == rhs.id
     }
@@ -63,7 +63,7 @@ struct MergedPerson: Identifiable, Hashable, Sendable {
     }
 }
 
-enum ConnectionType: String, CaseIterable, Identifiable, Sendable {
+enum ConnectionType: String, CaseIterable, Identifiable, Sendable, Codable {
     case twoWay = "Two-Way"
     case theyGhost = "Ghosted By"
     case iGhost = "I Ghost"
@@ -90,7 +90,7 @@ enum ConnectionType: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-struct ReelShareEntry: Identifiable, Sendable {
+struct ReelShareEntry: Identifiable, Sendable, Codable {
     let id: String // chatID
     let personName: String
     let chatTitle: String
@@ -101,7 +101,7 @@ struct ReelShareEntry: Identifiable, Sendable {
     var totalReels: Int { reelsSent + reelsReceived }
 }
 
-struct PlatformStats: Identifiable, Sendable {
+struct PlatformStats: Identifiable, Sendable, Codable {
     let platform: Platform
     var chatCount: Int = 0
     var messageCount: Int = 0

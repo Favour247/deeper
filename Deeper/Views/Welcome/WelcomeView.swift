@@ -22,6 +22,14 @@ struct WelcomeView: View {
     @State private var showAdvanced = false
     @State private var showAdvancedSheet = false
     @State private var arrowPhase: CGFloat = 0
+    @State private var appIcon: NSImage = {
+        let size = NSSize(width: 128, height: 128)
+        let img = NSImage(size: size)
+        img.lockFocus()
+        NSApp.applicationIconImage?.draw(in: NSRect(origin: .zero, size: size))
+        img.unlockFocus()
+        return img
+    }()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -54,7 +62,7 @@ struct WelcomeView: View {
 
                 // Deeper icon
                 VStack(spacing: 8) {
-                    Image(nsImage: NSApp.applicationIconImage)
+                    Image(nsImage: appIcon)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 80, height: 80)
