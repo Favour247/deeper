@@ -119,6 +119,99 @@ struct GroupsView: View {
                         .glassEffect(.regular, in: .rect(cornerRadius: 16))
                     }
 
+                    // MARK: - Most Active Groups
+                    if !store.mostActiveGroups.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Most Active Groups")
+                                .font(.headline)
+
+                            let topActive = Array(store.mostActiveGroups.filter { $0.messageCount > 0 }.prefix(15))
+
+                            ForEach(Array(topActive.enumerated()), id: \.element.id) { index, group in
+                                HStack(spacing: 12) {
+                                    Text("#\(index + 1)")
+                                        .font(.caption)
+                                        .fontWeight(.bold)
+                                        .foregroundStyle(.secondary)
+                                        .frame(width: 28)
+
+                                    Circle()
+                                        .fill(group.platform.color.gradient)
+                                        .frame(width: 36, height: 36)
+                                        .overlay {
+                                            Text(String(group.title.prefix(1)).uppercased())
+                                                .font(.system(size: 16, weight: .semibold))
+                                                .foregroundStyle(.white)
+                                        }
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(group.title)
+                                            .font(.callout)
+                                            .fontWeight(.medium)
+                                            .lineLimit(1)
+                                        HStack(spacing: 6) {
+                                            HStack(spacing: 2) {
+                                                Image(systemName: group.platform.iconName)
+                                                    .font(.system(size: 9))
+                                                Text(group.platform.displayName)
+                                                    .font(.caption2)
+                                            }
+                                            .foregroundStyle(group.platform.color)
+
+                                            Label("\(group.memberCount)", systemImage: "person.2.fill")
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+
+                                    Spacer()
+
+                                    VStack(alignment: .trailing, spacing: 2) {
+                                        HStack(spacing: 8) {
+                                            HStack(spacing: 3) {
+                                                Image(systemName: "arrow.up")
+                                                    .font(.system(size: 9))
+                                                    .foregroundStyle(.blue)
+                                                Text("\(group.messagesSent)")
+                                                    .font(.caption)
+                                                    .fontWeight(.medium)
+                                            }
+                                            HStack(spacing: 3) {
+                                                Image(systemName: "arrow.down")
+                                                    .font(.system(size: 9))
+                                                    .foregroundStyle(.green)
+                                                Text("\(group.messagesReceived)")
+                                                    .font(.caption)
+                                                    .fontWeight(.medium)
+                                            }
+                                        }
+                                        .fixedSize()
+
+                                        if let date = group.lastActivity {
+                                            Text(date, style: .relative)
+                                                .font(.caption2)
+                                                .foregroundStyle(.tertiary)
+                                        }
+                                    }
+
+                                    Text("\(group.messageCount)")
+                                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                                        .fixedSize()
+                                        .frame(minWidth: 40, alignment: .trailing)
+                                }
+                                .padding(.vertical, 4)
+                                .padding(.horizontal, 10)
+                                .background(
+                                    index < 3 ? group.platform.color.opacity(0.06) : Color.clear,
+                                    in: RoundedRectangle(cornerRadius: 8)
+                                )
+                            }
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                        .glassEffect(.regular, in: .rect(cornerRadius: 16))
+                    }
+
                     // MARK: - Per-Platform Group Lists
                     ForEach(store.groupStats) { platformStat in
                         PlatformGroupCard(stat: platformStat, searchText: searchText)

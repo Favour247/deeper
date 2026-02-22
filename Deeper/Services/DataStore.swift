@@ -24,6 +24,7 @@ final class DataStore {
 
     // MARK: - Groups
     var groupStats: [PlatformGroupStats] = []
+    var mostActiveGroups: [GroupInfo] = []
 
     // MARK: - Reels
     var reelEntries: [ReelShareEntry] = []
@@ -80,29 +81,55 @@ final class DataStore {
             loadingProgress = "Computing platform stats..."
             platformStats = PersonMerger.computePlatformStats(chats: fetchedChats)
 
-            // 4. Group stats
-            loadingProgress = "Computing group stats..."
-            var groupMap: [Platform: [GroupInfo]] = [:]
-            for chat in fetchedChats where chat.type == .group {
-                let platform = chat.platform
-                let info = GroupInfo(
+            // 4. Group stats + message analysis
+            loadingProgress = "Analyzing groups..."
+            let groupChats = fetchedChats.filter { $0.type == .group }
+            var groupInfos: [GroupInfo] = []
+
+            for (index, chat) in groupChats.enumerated() {
+                loadingProgress = "Analyzing groups (\(index + 1)/\(groupChats.count))..."
+                var info = GroupInfo(
                     id: chat.id,
                     title: chat.title,
-                    platform: platform,
+                    platform: chat.platform,
                     memberCount: chat.participants.total,
                     unreadCount: chat.unreadCount,
                     lastActivity: chat.lastActivity,
                     isMuted: chat.isMuted ?? false,
                     isPinned: chat.isPinned ?? false
                 )
-                groupMap[platform, default: []].append(info)
+                do {
+                    let response = try await api.listMessages(chatID: chat.id)
+                    var sent = 0
+                    var received = 0
+                    for msg in response.items {
+                        if msg.isSender == true {
+                            sent += 1
+                        } else {
+                            received += 1
+                        }
+                    }
+                    info.messagesSent = sent
+                    info.messagesReceived = received
+                    info.messageCount = sent + received
+                } catch {
+                    // keep zeros
+                }
+                groupInfos.append(info)
+            }
+
+            var groupMap: [Platform: [GroupInfo]] = [:]
+            for info in groupInfos {
+                groupMap[info.platform, default: []].append(info)
             }
             groupStats = groupMap.map { platform, groups in
                 PlatformGroupStats(
                     platform: platform,
-                    groups: groups.sorted { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }
+                    groups: groups.sorted { $0.messageCount > $1.messageCount }
                 )
             }.sorted { $0.totalGroups > $1.totalGroups }
+            mostActiveGroups = groupInfos
+                .sorted { $0.messageCount > $1.messageCount }
 
             // 5. Merge people
             loadingProgress = "Merging people..."
