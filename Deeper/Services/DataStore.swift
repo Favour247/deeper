@@ -41,6 +41,8 @@ final class DataStore {
     // MARK: - Analytics
     var phraseStats: PhraseStats = PhraseStats()
     var responseTimeStats: ResponseTimeStats = ResponseTimeStats()
+    var rawSentTexts: [TimestampedText] = []
+    var rawResponses: [TimestampedResponse] = []
 
     // MARK: - Time Range Stats
     var todayStats: TimeRangeStats?
@@ -126,6 +128,8 @@ final class DataStore {
     struct CacheAnalytics: Codable {
         let phraseStats: PhraseStats
         let responseTimeStats: ResponseTimeStats
+        let rawSentTexts: [TimestampedText]
+        let rawResponses: [TimestampedResponse]
     }
 
     private func saveCacheFile<T: Encodable>(_ value: T, name: String) {
@@ -170,7 +174,8 @@ final class DataStore {
         ), name: "reels.json")
 
         saveCacheFile(CacheAnalytics(
-            phraseStats: phraseStats, responseTimeStats: responseTimeStats
+            phraseStats: phraseStats, responseTimeStats: responseTimeStats,
+            rawSentTexts: rawSentTexts, rawResponses: rawResponses
         ), name: "analytics.json")
     }
 
@@ -210,7 +215,99 @@ final class DataStore {
         if let analytics = loadCacheFile(CacheAnalytics.self, name: "analytics.json") {
             phraseStats = analytics.phraseStats
             responseTimeStats = analytics.responseTimeStats
+            rawSentTexts = analytics.rawSentTexts
+            rawResponses = analytics.rawResponses
         }
+    }
+
+    // MARK: - Date-filtered analytics
+
+    private static let phraseStopWords: Set<String> = ["the", "a", "an", "is", "it", "to", "in", "for", "of", "and", "or", "on", "at", "i", "me", "my", "you", "your", "we", "he", "she", "they", "that", "this", "but", "not", "so", "do", "be", "have", "has", "had", "was", "were", "been", "am", "are", "will", "can", "just", "no", "yes", "ok", "ya", "oh", "if", "with", "from", "as", "by", "de", "bir", "bu", "da", "ve", "ben", "sen", "o", "ne", "var", "bir", "mi", "mu", "mı", "http", "https", "www", "com", "org", "net", "io", "co", "html", "php", "instagram", "facebook", "twitter", "youtube", "tiktok", "reddit", "linkedin", "whatsapp", "telegram", "signal", "stories", "reel", "reels", "story", "their", "mentioned"]
+
+    func phraseStats(for range: AnalyticsDateRange) -> PhraseStats {
+        if range == .all { return phraseStats }
+        guard let cutoff = range.cutoffDate else { return phraseStats }
+        let filtered = rawSentTexts.filter { $0.timestamp >= cutoff }
+        return Self.computePhraseStats(from: filtered.map(\.text))
+    }
+
+    static func computePhraseStats(from texts: [String]) -> PhraseStats {
+        let urlPattern = try? NSRegularExpression(pattern: "https?://\\S+|www\\.\\S+", options: .caseInsensitive)
+        var wordCounts: [String: Int] = [:]
+        var bigramCounts: [String: Int] = [:]
+        var totalWords = 0
+        var totalLen = 0
+        for text in texts {
+            let cleaned = urlPattern?.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..., in: text), withTemplate: "") ?? text
+            let words = cleaned.lowercased()
+                .components(separatedBy: CharacterSet.alphanumerics.inverted)
+                .filter { $0.count > 1 && !phraseStopWords.contains($0) }
+            totalWords += words.count
+            totalLen += text.count
+            for word in words { wordCounts[word, default: 0] += 1 }
+            for i in 0..<max(0, words.count - 1) {
+                bigramCounts["\(words[i]) \(words[i + 1])", default: 0] += 1
+            }
+        }
+        return PhraseStats(
+            topWords: wordCounts.sorted { $0.value > $1.value }.prefix(50).map { WordFrequency(word: $0.key, count: $0.value) },
+            topBigrams: bigramCounts.sorted { $0.value > $1.value }.prefix(30).map { WordFrequency(word: $0.key, count: $0.value) },
+            totalWords: totalWords,
+            uniqueWords: wordCounts.count,
+            averageMessageLength: texts.isEmpty ? 0 : Double(totalLen) / Double(texts.count)
+        )
+    }
+
+    func responseTimeStats(for range: AnalyticsDateRange) -> ResponseTimeStats {
+        if range == .all { return responseTimeStats }
+        guard let cutoff = range.cutoffDate else { return responseTimeStats }
+        let filtered = rawResponses.filter { $0.timestamp >= cutoff }
+        return Self.computeResponseTimeStats(from: filtered)
+    }
+
+    static func computeResponseTimeStats(from responses: [TimestampedResponse]) -> ResponseTimeStats {
+        var personMap: [String: (myTotal: Double, myCount: Int, theirTotal: Double, theirCount: Int, platform: Platform)] = [:]
+        for r in responses {
+            let key = "\(r.personName)_\(r.platform.rawValue)"
+            var entry = personMap[key] ?? (0, 0, 0, 0, r.platform)
+            if r.isMine {
+                entry.myTotal += r.responseTimeSec
+                entry.myCount += 1
+            } else {
+                entry.theirTotal += r.responseTimeSec
+                entry.theirCount += 1
+            }
+            personMap[key] = entry
+        }
+        var perPerson: [PersonResponseTime] = []
+        var overallMySec: Double = 0, overallMyCount = 0
+        var overallTheirSec: Double = 0, overallTheirCount = 0
+        for (key, val) in personMap {
+            let name = String(key.prefix(while: { $0 != "_" }))
+            // Extract person name properly — everything before last _platform
+            let parts = key.components(separatedBy: "_")
+            let pName = parts.dropLast().joined(separator: "_")
+            perPerson.append(PersonResponseTime(
+                personName: pName,
+                platform: val.platform,
+                myAvgResponseSec: val.myCount > 0 ? val.myTotal / Double(val.myCount) : 0,
+                theirAvgResponseSec: val.theirCount > 0 ? val.theirTotal / Double(val.theirCount) : 0,
+                myResponseCount: val.myCount,
+                theirResponseCount: val.theirCount
+            ))
+            overallMySec += val.myTotal
+            overallMyCount += val.myCount
+            overallTheirSec += val.theirTotal
+            overallTheirCount += val.theirCount
+        }
+        perPerson.sort { $0.myAvgResponseSec < $1.myAvgResponseSec }
+        return ResponseTimeStats(
+            perPerson: perPerson,
+            overallMyAvgSec: overallMyCount > 0 ? overallMySec / Double(overallMyCount) : 0,
+            overallTheirAvgSec: overallTheirCount > 0 ? overallTheirSec / Double(overallTheirCount) : 0,
+            totalMyResponses: overallMyCount,
+            totalTheirResponses: overallTheirCount
+        )
     }
 
     // MARK: - Full sync
@@ -313,8 +410,10 @@ final class DataStore {
             let calendar = Calendar.current
             var hourlyMap: [Platform: [Int: Int]] = [:]
             var allSentTexts: [String] = []
+            var timestampedTexts: [TimestampedText] = []
             var totalMessageLengths: Int = 0
             var sentMessageCount: Int = 0
+            var timestampedResponses: [TimestampedResponse] = []
             var chatResponseTimes: [(chatID: String, platform: Platform, personName: String, myTotals: Double, myCount: Int, theirTotals: Double, theirCount: Int)] = []
 
             for (index, chat) in dmChats.enumerated() {
@@ -333,6 +432,7 @@ final class DataStore {
                                 bd.sent += 1
                                 if let text = msg.text, !text.isEmpty {
                                     allSentTexts.append(text)
+                                    timestampedTexts.append(TimestampedText(text: text, timestamp: msg.timestamp))
                                     totalMessageLengths += text.count
                                     sentMessageCount += 1
                                 }
@@ -361,14 +461,17 @@ final class DataStore {
                         let curr = sorted[i]
                         let gap = curr.timestamp.timeIntervalSince(prev.timestamp)
                         guard gap > 0, gap < 86400 * 7 else { continue } // ignore >7d gaps
+                        let personName = chat.participants.items.first(where: { $0.isSelf != true })?.displayName ?? chat.title
                         if prev.isSender != true && curr.isSender == true {
                             // They sent, I replied
                             myTotal += gap
                             myCount += 1
+                            timestampedResponses.append(TimestampedResponse(personName: personName, platform: platform, isMine: true, responseTimeSec: gap, timestamp: curr.timestamp))
                         } else if prev.isSender == true && curr.isSender != true {
                             // I sent, they replied
                             theirTotal += gap
                             theirCount += 1
+                            timestampedResponses.append(TimestampedResponse(personName: personName, platform: platform, isMine: false, responseTimeSec: gap, timestamp: curr.timestamp))
                         }
                     }
                     let personName = chat.participants.items.first(where: { $0.isSelf != true })?.displayName ?? chat.title
@@ -444,6 +547,10 @@ final class DataStore {
                 totalMyResponses: overallMyCount,
                 totalTheirResponses: overallTheirCount
             )
+
+            // Store raw data for date-range filtering
+            rawSentTexts = timestampedTexts
+            rawResponses = timestampedResponses
 
             // 6. Hourly activity
             var points: [HourlyActivityPoint] = []

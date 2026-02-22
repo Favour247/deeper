@@ -10,6 +10,11 @@ import Charts
 
 struct PhrasesView: View {
     var store: DataStore
+    @State private var dateRange: AnalyticsDateRange = .all
+
+    private var stats: PhraseStats {
+        store.phraseStats(for: dateRange)
+    }
 
     var body: some View {
         ScrollView {
@@ -32,6 +37,17 @@ struct PhrasesView: View {
                 phraseContent
             }
         }
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                Picker("Range", selection: $dateRange) {
+                    ForEach(AnalyticsDateRange.allCases) { range in
+                        Text(range.rawValue).tag(range)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 300)
+            }
+        }
         .navigationTitle("Phrases")
     }
 
@@ -45,7 +61,7 @@ struct PhrasesView: View {
     }
 
     private var phraseSummaryCards: some View {
-        let stats = store.phraseStats
+        let stats = stats
         let vocabPct: String = stats.totalWords > 0
             ? String(format: "%.1f%%", Double(stats.uniqueWords) / Double(stats.totalWords) * 100)
             : "—"
@@ -70,7 +86,7 @@ struct PhrasesView: View {
     }
 
     private var topWordsChart: some View {
-        let topWords = Array(store.phraseStats.topWords.prefix(20))
+        let topWords = Array(stats.topWords.prefix(20))
         return VStack(alignment: .leading, spacing: 12) {
             Text("Most Used Words")
                 .font(.headline)
@@ -99,7 +115,7 @@ struct PhrasesView: View {
     }
 
     private var topPhrasesChart: some View {
-        let topBigrams = Array(store.phraseStats.topBigrams.prefix(15))
+        let topBigrams = Array(stats.topBigrams.prefix(15))
         return VStack(alignment: .leading, spacing: 12) {
             Text("Most Used Phrases")
                 .font(.headline)
@@ -136,12 +152,12 @@ struct PhrasesView: View {
     }
 
     private var wordCloud: some View {
-        let maxCount = Double(store.phraseStats.topWords.first?.count ?? 1)
+        let maxCount = Double(stats.topWords.first?.count ?? 1)
         return VStack(alignment: .leading, spacing: 12) {
             Text("All Top Words")
                 .font(.headline)
             FlowLayout(spacing: 6) {
-                ForEach(store.phraseStats.topWords) { word in
+                ForEach(stats.topWords) { word in
                     let ratio = Double(word.count) / maxCount
                     let fontSize = max(10, min(22, 10 + ratio * 12))
                     HStack(spacing: 4) {

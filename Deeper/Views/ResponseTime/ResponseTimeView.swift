@@ -11,6 +11,7 @@ import Charts
 struct ResponseTimeView: View {
     var store: DataStore
     @State private var sortBy: SortOption = .myFastest
+    @State private var dateRange: AnalyticsDateRange = .all
 
     enum SortOption: String, CaseIterable {
         case myFastest = "My Fastest"
@@ -19,8 +20,12 @@ struct ResponseTimeView: View {
         case theirSlowest = "Their Slowest"
     }
 
+    private var stats: ResponseTimeStats {
+        store.responseTimeStats(for: dateRange)
+    }
+
     var sortedPeople: [PersonResponseTime] {
-        let filtered = store.responseTimeStats.perPerson.filter { $0.myResponseCount > 0 || $0.theirResponseCount > 0 }
+        let filtered = stats.perPerson.filter { $0.myResponseCount > 0 || $0.theirResponseCount > 0 }
         switch sortBy {
         case .myFastest:
             return filtered.filter { $0.myResponseCount > 0 }.sorted { $0.myAvgResponseSec < $1.myAvgResponseSec }
@@ -51,7 +56,6 @@ struct ResponseTimeView: View {
                     description: Text("Sync your data to see response time analytics")
                 )
             } else {
-                let stats = store.responseTimeStats
                 VStack(alignment: .leading, spacing: 24) {
                     // MARK: - Summary Cards
                     LazyVGrid(columns: [
@@ -254,6 +258,17 @@ struct ResponseTimeView: View {
                     .glassEffect(.regular, in: .rect(cornerRadius: 16))
                 }
                 .padding(24)
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                Picker("Range", selection: $dateRange) {
+                    ForEach(AnalyticsDateRange.allCases) { range in
+                        Text(range.rawValue).tag(range)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 300)
             }
         }
         .navigationTitle("Response Time")

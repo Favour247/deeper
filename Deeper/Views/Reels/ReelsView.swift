@@ -10,6 +10,12 @@ import Charts
 
 struct ReelsView: View {
     var store: DataStore
+    @State private var dateRange: AnalyticsDateRange = .all
+
+    private var filteredEntries: [ReelShareEntry] {
+        guard let cutoff = dateRange.cutoffDate else { return store.reelEntries }
+        return store.reelEntries.filter { ($0.lastReelDate ?? .distantPast) >= cutoff }
+    }
 
     var body: some View {
         ScrollView {
@@ -36,31 +42,31 @@ struct ReelsView: View {
                     HStack(spacing: 16) {
                         StatCard(
                             title: "Reels Sent",
-                            value: "\(store.totalReelsSent)",
+                            value: "\(filteredEntries.reduce(0) { $0 + $1.reelsSent })",
                             icon: "arrow.up.circle.fill",
                             color: .pink
                         )
                         StatCard(
                             title: "Reels Received",
-                            value: "\(store.totalReelsReceived)",
+                            value: "\(filteredEntries.reduce(0) { $0 + $1.reelsReceived })",
                             icon: "arrow.down.circle.fill",
                             color: .purple
                         )
                         StatCard(
                             title: "People",
-                            value: "\(store.reelEntries.count)",
+                            value: "\(filteredEntries.count)",
                             icon: "person.2.fill",
                             color: .orange
                         )
                     }
 
                     // MARK: - Top Reels Chart
-                    if !store.reelEntries.isEmpty {
+                    if !filteredEntries.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Who Do You Share Reels With?")
                                 .font(.headline)
 
-                            let topEntries = Array(store.reelEntries.prefix(10))
+                            let topEntries = Array(filteredEntries.prefix(10))
                             Chart(topEntries) { entry in
                                 BarMark(
                                     x: .value("Reels Sent", entry.reelsSent),
@@ -92,7 +98,7 @@ struct ReelsView: View {
                         Text("Reels Leaderboard")
                             .font(.headline)
 
-                        ForEach(Array(store.reelEntries.prefix(50).enumerated()), id: \.element.id) { index, entry in
+                        ForEach(Array(filteredEntries.prefix(50).enumerated()), id: \.element.id) { index, entry in
                             HStack(spacing: 12) {
                                 Text("#\(index + 1)")
                                     .font(.caption)
@@ -163,6 +169,17 @@ struct ReelsView: View {
                 }
             }
             .padding(24)
+        }
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                Picker("Range", selection: $dateRange) {
+                    ForEach(AnalyticsDateRange.allCases) { range in
+                        Text(range.rawValue).tag(range)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 300)
+            }
         }
         .navigationTitle("Instagram Reels")
     }

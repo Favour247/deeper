@@ -7,6 +7,42 @@
 
 import Foundation
 
+// MARK: - Date Range
+
+enum AnalyticsDateRange: String, CaseIterable, Identifiable, Codable {
+    case week = "7 Days"
+    case month = "30 Days"
+    case quarter = "90 Days"
+    case all = "All Time"
+
+    var id: String { rawValue }
+
+    var cutoffDate: Date? {
+        switch self {
+        case .week: Calendar.current.date(byAdding: .day, value: -7, to: Date())
+        case .month: Calendar.current.date(byAdding: .day, value: -30, to: Date())
+        case .quarter: Calendar.current.date(byAdding: .day, value: -90, to: Date())
+        case .all: nil
+        }
+    }
+}
+
+// MARK: - Raw timestamped data for on-demand filtering
+
+struct TimestampedText: Codable {
+    let text: String
+    let timestamp: Date
+}
+
+struct TimestampedResponse: Identifiable, Codable {
+    let personName: String
+    let platform: Platform
+    let isMine: Bool
+    let responseTimeSec: Double
+    let timestamp: Date
+    var id: String { "\(personName)_\(platform.rawValue)_\(timestamp.timeIntervalSince1970)_\(isMine)" }
+}
+
 // MARK: - Phrase Analytics
 
 struct WordFrequency: Identifiable, Codable {
