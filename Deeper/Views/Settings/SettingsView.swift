@@ -376,9 +376,7 @@ struct SettingsView: View {
         hasExistingToken = false
 
         // Clear cached data
-        let cacheURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-            .appendingPathComponent("deeper_data_cache.json")
-        try? FileManager.default.removeItem(at: cacheURL)
+        DataStore.clearCache()
 
         // Clear settings
         UserDefaults.standard.removeObject(forKey: "messageLimit")

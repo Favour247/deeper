@@ -16,6 +16,8 @@ enum SidebarItem: String, CaseIterable, Identifiable {
     case groups = "Groups"
     case platforms = "Platforms"
     case reels = "Reels"
+    case phrases = "Phrases"
+    case responseTime = "Response Time"
 
     var id: String { rawValue }
 
@@ -28,6 +30,8 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         case .groups: "person.3.sequence.fill"
         case .platforms: "app.connected.to.app.below.fill"
         case .reels: "play.rectangle.fill"
+        case .phrases: "text.quote"
+        case .responseTime: "clock.arrow.circlepath"
         }
     }
 }
@@ -193,6 +197,10 @@ struct ContentView: View {
             PlatformsView(store: store)
         case .reels:
             ReelsView(store: store)
+        case .phrases:
+            PhrasesView(store: store)
+        case .responseTime:
+            ResponseTimeView(store: store)
         case nil:
             Text("Select an item from the sidebar")
                 .font(.title2)

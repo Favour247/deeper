@@ -38,6 +38,10 @@ final class DataStore {
     var messagesSentToday: Int = 0
     var messagesReceivedToday: Int = 0
 
+    // MARK: - Analytics
+    var phraseStats: PhraseStats = PhraseStats()
+    var responseTimeStats: ResponseTimeStats = ResponseTimeStats()
+
     // MARK: - Time Range Stats
     var todayStats: TimeRangeStats?
     var lastWeekStats: TimeRangeStats?
@@ -64,91 +68,149 @@ final class DataStore {
         loadCache()
     }
 
-    // MARK: - Cache
+    // MARK: - Cache (split into multiple files)
 
-    private static var cacheURL: URL {
+    private static var cacheDir: URL {
         let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-        return dir.appendingPathComponent("deeper_data_cache.json")
+            .appendingPathComponent("deeper_cache", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
     }
 
-    struct CachedData: Codable {
+    static func clearCache() {
+        try? FileManager.default.removeItem(at: cacheDir)
+        // Also remove legacy single file
+        let legacy = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("deeper_data_cache.json")
+        try? FileManager.default.removeItem(at: legacy)
+    }
+
+    struct CacheCore: Codable {
         let accounts: [BeeperAccount]
-        let allChats: [BeeperChat]
-        let chatBreakdowns: [String: PersonMerger.ChatMessageBreakdown]
-        let mergedPeople: [MergedPerson]
-        let twoWayPeople: [MergedPerson]
-        let theyGhostPeople: [MergedPerson]
-        let iGhostPeople: [MergedPerson]
-        let platformStats: [PlatformStats]
-        let hourlyActivity: [HourlyActivityPoint]
-        let groupStats: [PlatformGroupStats]
-        let mostActiveGroups: [GroupInfo]
-        let reelEntries: [ReelShareEntry]
-        let totalReelsSent: Int
-        let totalReelsReceived: Int
-        let hasInstagram: Bool
         let totalChats: Int
         let totalUnread: Int
         let messagesSentToday: Int
         let messagesReceivedToday: Int
+        let hasInstagram: Bool
         let lastSyncDate: Date?
     }
 
+    struct CachePeople: Codable {
+        let mergedPeople: [MergedPerson]
+        let twoWayPeople: [MergedPerson]
+        let theyGhostPeople: [MergedPerson]
+        let iGhostPeople: [MergedPerson]
+        let chatBreakdowns: [String: PersonMerger.ChatMessageBreakdown]
+    }
+
+    struct CacheChats: Codable {
+        let allChats: [BeeperChat]
+    }
+
+    struct CachePlatforms: Codable {
+        let platformStats: [PlatformStats]
+        let hourlyActivity: [HourlyActivityPoint]
+    }
+
+    struct CacheGroups: Codable {
+        let groupStats: [PlatformGroupStats]
+        let mostActiveGroups: [GroupInfo]
+    }
+
+    struct CacheReels: Codable {
+        let reelEntries: [ReelShareEntry]
+        let totalReelsSent: Int
+        let totalReelsReceived: Int
+    }
+
+    struct CacheAnalytics: Codable {
+        let phraseStats: PhraseStats
+        let responseTimeStats: ResponseTimeStats
+    }
+
+    private func saveCacheFile<T: Encodable>(_ value: T, name: String) {
+        let url = Self.cacheDir.appendingPathComponent(name)
+        if let data = try? JSONEncoder().encode(value) {
+            try? data.write(to: url)
+        }
+    }
+
+    private func loadCacheFile<T: Decodable>(_ type: T.Type, name: String) -> T? {
+        let url = Self.cacheDir.appendingPathComponent(name)
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        return try? JSONDecoder().decode(type, from: data)
+    }
+
     func saveCache() {
-        let data = CachedData(
-            accounts: accounts,
-            allChats: allChats,
-            chatBreakdowns: chatBreakdowns,
-            mergedPeople: mergedPeople,
-            twoWayPeople: twoWayPeople,
-            theyGhostPeople: theyGhostPeople,
-            iGhostPeople: iGhostPeople,
-            platformStats: platformStats,
-            hourlyActivity: hourlyActivity,
-            groupStats: groupStats,
-            mostActiveGroups: mostActiveGroups,
-            reelEntries: reelEntries,
-            totalReelsSent: totalReelsSent,
-            totalReelsReceived: totalReelsReceived,
-            hasInstagram: hasInstagram,
-            totalChats: totalChats,
-            totalUnread: totalUnread,
-            messagesSentToday: messagesSentToday,
-            messagesReceivedToday: messagesReceivedToday,
-            lastSyncDate: lastSyncDate
-        )
-        do {
-            let encoded = try JSONEncoder().encode(data)
-            try encoded.write(to: Self.cacheURL)
-        } catch {}
+        saveCacheFile(CacheCore(
+            accounts: accounts, totalChats: totalChats, totalUnread: totalUnread,
+            messagesSentToday: messagesSentToday, messagesReceivedToday: messagesReceivedToday,
+            hasInstagram: hasInstagram, lastSyncDate: lastSyncDate
+        ), name: "core.json")
+
+        saveCacheFile(CachePeople(
+            mergedPeople: mergedPeople, twoWayPeople: twoWayPeople,
+            theyGhostPeople: theyGhostPeople, iGhostPeople: iGhostPeople,
+            chatBreakdowns: chatBreakdowns
+        ), name: "people.json")
+
+        saveCacheFile(CacheChats(allChats: allChats), name: "chats.json")
+
+        saveCacheFile(CachePlatforms(
+            platformStats: platformStats, hourlyActivity: hourlyActivity
+        ), name: "platforms.json")
+
+        saveCacheFile(CacheGroups(
+            groupStats: groupStats, mostActiveGroups: mostActiveGroups
+        ), name: "groups.json")
+
+        saveCacheFile(CacheReels(
+            reelEntries: reelEntries, totalReelsSent: totalReelsSent,
+            totalReelsReceived: totalReelsReceived
+        ), name: "reels.json")
+
+        saveCacheFile(CacheAnalytics(
+            phraseStats: phraseStats, responseTimeStats: responseTimeStats
+        ), name: "analytics.json")
     }
 
     func loadCache() {
-        guard FileManager.default.fileExists(atPath: Self.cacheURL.path) else { return }
-        do {
-            let data = try Data(contentsOf: Self.cacheURL)
-            let cached = try JSONDecoder().decode(CachedData.self, from: data)
-            accounts = cached.accounts
-            allChats = cached.allChats
-            chatBreakdowns = cached.chatBreakdowns
-            mergedPeople = cached.mergedPeople
-            twoWayPeople = cached.twoWayPeople
-            theyGhostPeople = cached.theyGhostPeople
-            iGhostPeople = cached.iGhostPeople
-            platformStats = cached.platformStats
-            hourlyActivity = cached.hourlyActivity
-            groupStats = cached.groupStats
-            mostActiveGroups = cached.mostActiveGroups
-            reelEntries = cached.reelEntries
-            totalReelsSent = cached.totalReelsSent
-            totalReelsReceived = cached.totalReelsReceived
-            hasInstagram = cached.hasInstagram
-            totalChats = cached.totalChats
-            totalUnread = cached.totalUnread
-            messagesSentToday = cached.messagesSentToday
-            messagesReceivedToday = cached.messagesReceivedToday
-            lastSyncDate = cached.lastSyncDate
-        } catch {}
+        guard let core = loadCacheFile(CacheCore.self, name: "core.json") else { return }
+        accounts = core.accounts
+        totalChats = core.totalChats
+        totalUnread = core.totalUnread
+        messagesSentToday = core.messagesSentToday
+        messagesReceivedToday = core.messagesReceivedToday
+        hasInstagram = core.hasInstagram
+        lastSyncDate = core.lastSyncDate
+
+        if let people = loadCacheFile(CachePeople.self, name: "people.json") {
+            mergedPeople = people.mergedPeople
+            twoWayPeople = people.twoWayPeople
+            theyGhostPeople = people.theyGhostPeople
+            iGhostPeople = people.iGhostPeople
+            chatBreakdowns = people.chatBreakdowns
+        }
+        if let chats = loadCacheFile(CacheChats.self, name: "chats.json") {
+            allChats = chats.allChats
+        }
+        if let plat = loadCacheFile(CachePlatforms.self, name: "platforms.json") {
+            platformStats = plat.platformStats
+            hourlyActivity = plat.hourlyActivity
+        }
+        if let grp = loadCacheFile(CacheGroups.self, name: "groups.json") {
+            groupStats = grp.groupStats
+            mostActiveGroups = grp.mostActiveGroups
+        }
+        if let reels = loadCacheFile(CacheReels.self, name: "reels.json") {
+            reelEntries = reels.reelEntries
+            totalReelsSent = reels.totalReelsSent
+            totalReelsReceived = reels.totalReelsReceived
+        }
+        if let analytics = loadCacheFile(CacheAnalytics.self, name: "analytics.json") {
+            phraseStats = analytics.phraseStats
+            responseTimeStats = analytics.responseTimeStats
+        }
     }
 
     // MARK: - Full sync
@@ -245,11 +307,15 @@ final class DataStore {
             loadingProgress = "Merging people..."
             var merged = PersonMerger.merge(chats: fetchedChats)
 
-            // 5. Analyze DMs: sent/received + hourly
+            // 5. Analyze DMs: sent/received + hourly + phrases + response times
             let dmChats = fetchedChats.filter { $0.type == .single }
             var breakdowns: [String: PersonMerger.ChatMessageBreakdown] = [:]
             let calendar = Calendar.current
             var hourlyMap: [Platform: [Int: Int]] = [:]
+            var allSentTexts: [String] = []
+            var totalMessageLengths: Int = 0
+            var sentMessageCount: Int = 0
+            var chatResponseTimes: [(chatID: String, platform: Platform, personName: String, myTotals: Double, myCount: Int, theirTotals: Double, theirCount: Int)] = []
 
             for (index, chat) in dmChats.enumerated() {
                 loadingProgress = "Analyzing conversations (\(index + 1)/\(dmChats.count))..."
@@ -259,16 +325,23 @@ final class DataStore {
                     var cursor: String? = nil
                     var total = 0
                     let limit = messageLimit
+                    var chatMessages: [BeeperMessage] = []
                     while total < limit {
                         let response = try await api.listMessages(chatID: chat.id, cursor: cursor, direction: cursor != nil ? "before" : nil)
                         for msg in response.items {
                             if msg.isSender == true {
                                 bd.sent += 1
+                                if let text = msg.text, !text.isEmpty {
+                                    allSentTexts.append(text)
+                                    totalMessageLengths += text.count
+                                    sentMessageCount += 1
+                                }
                             } else {
                                 bd.received += 1
                             }
                             let hour = calendar.component(.hour, from: msg.timestamp)
                             hourlyMap[platform, default: [:]][hour, default: 0] += 1
+                            chatMessages.append(msg)
                             total += 1
                             if total >= limit { break }
                         }
@@ -276,12 +349,101 @@ final class DataStore {
                         cursor = lastMsg.sortKey
                     }
                     breakdowns[chat.id] = bd
+
+                    // Response time calculation
+                    let sorted = chatMessages.sorted { $0.timestamp < $1.timestamp }
+                    var myTotal: Double = 0
+                    var myCount = 0
+                    var theirTotal: Double = 0
+                    var theirCount = 0
+                    for i in 1..<max(1, sorted.count) where sorted.count > 1 {
+                        let prev = sorted[i - 1]
+                        let curr = sorted[i]
+                        let gap = curr.timestamp.timeIntervalSince(prev.timestamp)
+                        guard gap > 0, gap < 86400 * 7 else { continue } // ignore >7d gaps
+                        if prev.isSender != true && curr.isSender == true {
+                            // They sent, I replied
+                            myTotal += gap
+                            myCount += 1
+                        } else if prev.isSender == true && curr.isSender != true {
+                            // I sent, they replied
+                            theirTotal += gap
+                            theirCount += 1
+                        }
+                    }
+                    let personName = chat.participants.items.first(where: { $0.isSelf != true })?.displayName ?? chat.title
+                    chatResponseTimes.append((chatID: chat.id, platform: platform, personName: personName, myTotals: myTotal, myCount: myCount, theirTotals: theirTotal, theirCount: theirCount))
                 } catch {
                     breakdowns[chat.id] = PersonMerger.ChatMessageBreakdown()
                 }
             }
 
             chatBreakdowns = breakdowns
+
+            // Phrase analysis
+            loadingProgress = "Analyzing phrases..."
+            let stopWords: Set<String> = ["the", "a", "an", "is", "it", "to", "in", "for", "of", "and", "or", "on", "at", "i", "me", "my", "you", "your", "we", "he", "she", "they", "that", "this", "but", "not", "so", "do", "be", "have", "has", "had", "was", "were", "been", "am", "are", "will", "can", "just", "no", "yes", "ok", "ya", "oh", "if", "with", "from", "as", "by", "de", "bir", "bu", "da", "ve", "ben", "sen", "o", "ne", "var", "bir", "mi", "mu", "mı", "http", "https", "www", "com", "org", "net", "io", "co", "html", "php", "instagram", "facebook", "twitter", "youtube", "tiktok", "reddit", "linkedin", "whatsapp", "telegram", "signal", "stories", "reel", "reels", "story", "their", "mentioned"]
+            var wordCounts: [String: Int] = [:]
+            var bigramCounts: [String: Int] = [:]
+            var totalWords = 0
+            let urlPattern = try? NSRegularExpression(pattern: "https?://\\S+|www\\.\\S+", options: .caseInsensitive)
+            for text in allSentTexts {
+                let cleaned = urlPattern?.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..., in: text), withTemplate: "") ?? text
+                let words = cleaned.lowercased()
+                    .components(separatedBy: CharacterSet.alphanumerics.inverted)
+                    .filter { $0.count > 1 && !stopWords.contains($0) }
+                totalWords += words.count
+                for word in words {
+                    wordCounts[word, default: 0] += 1
+                }
+                for i in 0..<max(0, words.count - 1) {
+                    let bigram = "\(words[i]) \(words[i + 1])"
+                    bigramCounts[bigram, default: 0] += 1
+                }
+            }
+            let topWords = wordCounts.sorted { $0.value > $1.value }.prefix(50)
+                .map { WordFrequency(word: $0.key, count: $0.value) }
+            let topBigrams = bigramCounts.sorted { $0.value > $1.value }.prefix(30)
+                .map { WordFrequency(word: $0.key, count: $0.value) }
+            phraseStats = PhraseStats(
+                topWords: topWords,
+                topBigrams: topBigrams,
+                totalWords: totalWords,
+                uniqueWords: wordCounts.count,
+                averageMessageLength: sentMessageCount > 0 ? Double(totalMessageLengths) / Double(sentMessageCount) : 0
+            )
+
+            // Response time aggregation
+            loadingProgress = "Computing response times..."
+            var perPerson: [PersonResponseTime] = []
+            var overallMySec: Double = 0
+            var overallMyCount = 0
+            var overallTheirSec: Double = 0
+            var overallTheirCount = 0
+            for rt in chatResponseTimes {
+                if rt.myCount > 0 || rt.theirCount > 0 {
+                    perPerson.append(PersonResponseTime(
+                        personName: rt.personName,
+                        platform: rt.platform,
+                        myAvgResponseSec: rt.myCount > 0 ? rt.myTotals / Double(rt.myCount) : 0,
+                        theirAvgResponseSec: rt.theirCount > 0 ? rt.theirTotals / Double(rt.theirCount) : 0,
+                        myResponseCount: rt.myCount,
+                        theirResponseCount: rt.theirCount
+                    ))
+                    overallMySec += rt.myTotals
+                    overallMyCount += rt.myCount
+                    overallTheirSec += rt.theirTotals
+                    overallTheirCount += rt.theirCount
+                }
+            }
+            perPerson.sort { $0.myAvgResponseSec < $1.myAvgResponseSec }
+            responseTimeStats = ResponseTimeStats(
+                perPerson: perPerson,
+                overallMyAvgSec: overallMyCount > 0 ? overallMySec / Double(overallMyCount) : 0,
+                overallTheirAvgSec: overallTheirCount > 0 ? overallTheirSec / Double(overallTheirCount) : 0,
+                totalMyResponses: overallMyCount,
+                totalTheirResponses: overallTheirCount
+            )
 
             // 6. Hourly activity
             var points: [HourlyActivityPoint] = []
