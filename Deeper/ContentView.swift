@@ -158,9 +158,22 @@ struct ContentView: View {
     }
 
     private var sidebar: some View {
-        List(SidebarItem.allCases, selection: $selection) { item in
-            Label(item.rawValue, systemImage: item.icon)
-                .tag(item)
+        List(selection: $selection) {
+            Section("Overview") {
+                ForEach([SidebarItem.dashboard, .today, .thisWeek]) { item in
+                    Label(item.rawValue, systemImage: item.icon).tag(item)
+                }
+            }
+            Section("Contacts") {
+                ForEach([SidebarItem.people, .groups, .platforms]) { item in
+                    Label(item.rawValue, systemImage: item.icon).tag(item)
+                }
+            }
+            Section("Analytics") {
+                ForEach([SidebarItem.phrases, .responseTime, .reels]) { item in
+                    Label(item.rawValue, systemImage: item.icon).tag(item)
+                }
+            }
         }
         .navigationSplitViewColumnWidth(min: 180, ideal: 220)
         .navigationTitle("Deeper")
