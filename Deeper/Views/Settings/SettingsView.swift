@@ -171,15 +171,8 @@ struct SettingsView: View {
             }
         }
         .sheet(isPresented: $showAdvancedWindow) {
-            AdvancedConnectView(
-                initialBaseURL: baseURL,
-                initialToken: token
-            ) { testedBaseURL, testedToken, testedInfo in
-                connectWithVerifiedCredentials(
-                    baseURL: testedBaseURL,
-                    token: testedToken,
-                    info: testedInfo
-                )
+            AdvancedConnectView(initialBaseURL: baseURL, initialToken: token) { testedBaseURL, testedToken, testedInfo in
+                connectWithVerifiedCredentials(baseURL: testedBaseURL, token: testedToken, info: testedInfo)
                 showAdvancedWindow = false
             }
         }
