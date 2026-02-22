@@ -6,54 +6,105 @@
 //
 
 import SwiftUI
-import SwiftData
 
-struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+enum SidebarItem: String, CaseIterable, Identifiable {
+    case dashboard = "Dashboard"
+    case people = "People"
+    case platforms = "Platforms"
+    case reels = "Reels"
+    case live = "Live Feed"
 
-    var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
-                }
-                .onDelete(perform: deleteItems)
-            }
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-            .toolbar {
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
-        }
-    }
+    var id: String { rawValue }
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
+    var icon: String {
+        switch self {
+        case .dashboard: "chart.bar.fill"
+        case .people: "person.3.fill"
+        case .platforms: "app.connected.to.app.below.fill"
+        case .reels: "play.rectangle.fill"
+        case .live: "bolt.fill"
         }
     }
 }
 
-#Preview {
-    ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+struct ContentView: View {
+    @State private var selection: SidebarItem? = .dashboard
+    @State var api: BeeperAPIClient?
+    @State var store: DataStore?
+    @State var wsManager: WebSocketManager?
+
+    var body: some View {
+        Group {
+            if let store {
+                NavigationSplitView {
+                    sidebar
+                } detail: {
+                    detail(store: store)
+                }
+                .toolbar {
+                    ToolbarItem(placement: .primaryAction) {
+                        if store.isLoading {
+                            ProgressView()
+                                .controlSize(.small)
+                                .frame(width: 24, height: 24)
+                        } else {
+                            Button {
+                                Task { await store.sync() }
+                            } label: {
+                                Label("Sync", systemImage: "arrow.clockwise")
+                            }
+                            .keyboardShortcut("r", modifiers: .command)
+                        }
+                    }
+                }
+            } else {
+                SettingsView(onConnect: { client in
+                    self.api = client
+                    let newStore = DataStore(api: client)
+                    self.store = newStore
+                    self.wsManager = WebSocketManager(token: client.token)
+                    Task { await newStore.sync() }
+                })
+            }
+        }
+        .onAppear {
+            if let token = KeychainHelper.loadToken() {
+                let client = BeeperAPIClient(token: token)
+                self.api = client
+                let newStore = DataStore(api: client)
+                self.store = newStore
+                self.wsManager = WebSocketManager(token: token)
+                Task { await newStore.sync() }
+            }
+        }
+    }
+
+    private var sidebar: some View {
+        List(SidebarItem.allCases, selection: $selection) { item in
+            Label(item.rawValue, systemImage: item.icon)
+                .tag(item)
+        }
+        .navigationSplitViewColumnWidth(min: 180, ideal: 220)
+        .navigationTitle("Deeper")
+    }
+
+    @ViewBuilder
+    private func detail(store: DataStore) -> some View {
+        switch selection {
+        case .dashboard:
+            DashboardView(store: store)
+        case .people:
+            PeopleView(store: store)
+        case .platforms:
+            PlatformsView(store: store)
+        case .reels:
+            ReelsView(store: store)
+        case .live:
+            LiveFeedView(wsManager: wsManager ?? WebSocketManager(token: api!.token))
+        case nil:
+            Text("Select an item from the sidebar")
+                .font(.title2)
+                .foregroundStyle(.secondary)
+        }
+    }
 }
