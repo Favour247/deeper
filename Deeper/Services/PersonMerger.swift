@@ -9,7 +9,10 @@ import Foundation
 
 enum PersonMerger {
     static func merge(chats: [BeeperChat]) -> [MergedPerson] {
+        // Maps person key -> MergedPerson
         var personMap: [String: MergedPerson] = [:]
+        // Maps (platform, userID) -> person key, so same-platform users stay separate
+        var platformUserToKey: [String: String] = [:]
 
         for chat in chats {
             let platform = Platform.from(accountID: chat.accountID)
@@ -18,7 +21,27 @@ enum PersonMerger {
                 guard participant.isSelf != true else { continue }
 
                 let name = participant.displayName
-                let key = name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                let normalizedName = name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                let platformUserID = "\(platform.rawValue)_\(participant.id)"
+
+                // Determine the person key for this participant
+                let key: String
+                if let existingKey = platformUserToKey[platformUserID] {
+                    // Already seen this exact platform+userID — use same person
+                    key = existingKey
+                } else if let existingPerson = personMap[normalizedName],
+                          !existingPerson.presences.contains(where: {
+                              $0.platform == platform && $0.userID != participant.id
+                          }) {
+                    // Name matches and no conflicting userID on same platform — merge cross-platform
+                    key = normalizedName
+                    platformUserToKey[platformUserID] = key
+                } else {
+                    // Name collision on same platform (different user) — disambiguate
+                    let disambiguated = "\(normalizedName)_\(participant.id)"
+                    key = disambiguated
+                    platformUserToKey[platformUserID] = key
+                }
 
                 if personMap[key] == nil {
                     personMap[key] = MergedPerson(

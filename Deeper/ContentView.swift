@@ -10,6 +10,7 @@ import SwiftUI
 enum SidebarItem: String, CaseIterable, Identifiable {
     case dashboard = "Dashboard"
     case people = "People"
+    case groups = "Groups"
     case platforms = "Platforms"
     case reels = "Reels"
     case live = "Live Feed"
@@ -20,6 +21,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         switch self {
         case .dashboard: "chart.bar.fill"
         case .people: "person.3.fill"
+        case .groups: "person.3.sequence.fill"
         case .platforms: "app.connected.to.app.below.fill"
         case .reels: "play.rectangle.fill"
         case .live: "bolt.fill"
@@ -95,6 +97,8 @@ struct ContentView: View {
             DashboardView(store: store)
         case .people:
             PeopleView(store: store)
+        case .groups:
+            GroupsView(store: store)
         case .platforms:
             PlatformsView(store: store)
         case .reels:

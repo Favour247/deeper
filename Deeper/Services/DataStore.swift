@@ -22,6 +22,9 @@ final class DataStore {
     var platformStats: [PlatformStats] = []
     var hourlyActivity: [HourlyActivityPoint] = []
 
+    // MARK: - Groups
+    var groupStats: [PlatformGroupStats] = []
+
     // MARK: - Reels
     var reelEntries: [ReelShareEntry] = []
     var totalReelsSent: Int = 0
@@ -77,7 +80,31 @@ final class DataStore {
             loadingProgress = "Computing platform stats..."
             platformStats = PersonMerger.computePlatformStats(chats: fetchedChats)
 
-            // 4. Merge people
+            // 4. Group stats
+            loadingProgress = "Computing group stats..."
+            var groupMap: [Platform: [GroupInfo]] = [:]
+            for chat in fetchedChats where chat.type == .group {
+                let platform = chat.platform
+                let info = GroupInfo(
+                    id: chat.id,
+                    title: chat.title,
+                    platform: platform,
+                    memberCount: chat.participants.total,
+                    unreadCount: chat.unreadCount,
+                    lastActivity: chat.lastActivity,
+                    isMuted: chat.isMuted ?? false,
+                    isPinned: chat.isPinned ?? false
+                )
+                groupMap[platform, default: []].append(info)
+            }
+            groupStats = groupMap.map { platform, groups in
+                PlatformGroupStats(
+                    platform: platform,
+                    groups: groups.sorted { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }
+                )
+            }.sorted { $0.totalGroups > $1.totalGroups }
+
+            // 5. Merge people
             loadingProgress = "Merging people..."
             var merged = PersonMerger.merge(chats: fetchedChats)
 

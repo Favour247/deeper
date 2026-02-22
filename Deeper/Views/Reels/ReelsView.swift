@@ -141,11 +141,13 @@ struct ReelsView: View {
                                             .fontWeight(.medium)
                                     }
                                 }
+                                .fixedSize()
 
                                 Text("\(entry.totalReels)")
                                     .font(.system(size: 18, weight: .bold, design: .rounded))
                                     .foregroundStyle(.primary)
-                                    .frame(width: 40, alignment: .trailing)
+                                    .fixedSize()
+                                    .frame(minWidth: 40, alignment: .trailing)
                             }
                             .padding(.vertical, 6)
                             .padding(.horizontal, 12)
